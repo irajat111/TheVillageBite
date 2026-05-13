@@ -57,6 +57,7 @@ fun OrdersScreen() {
     var showDialog by remember { mutableStateOf(false) }
     var selectedId by remember { mutableStateOf("") }
 
+    // fetch data from firebase firestore
     LaunchedEffect(Unit) {
         db.collection("FoodItem1").get()
             .addOnSuccessListener { res ->
@@ -158,7 +159,7 @@ fun OrdersScreen() {
 
     // ✅ Step 3 — Dialog OUTSIDE Box
     if (showDialog) {
-        openDialogbox(
+        openDialogboxOrders(
             showDialog = showDialog,
             dissmis = { showDialog = false },
             selectedId = selectedId
@@ -167,7 +168,7 @@ fun OrdersScreen() {
 }
 
 @Composable
-fun openDialogbox(showDialog: Boolean, dissmis: () -> Unit, selectedId: String) {
+fun openDialogboxOrders(showDialog: Boolean, dissmis: () -> Unit, selectedId: String) {
 
     val context = LocalContext.current
     var category by remember { mutableStateOf("") }
@@ -175,7 +176,7 @@ fun openDialogbox(showDialog: Boolean, dissmis: () -> Unit, selectedId: String) 
     var price by remember { mutableStateOf("") }
 
 
-    Dialog(
+        Dialog(
         onDismissRequest = {
             dissmis()  // ✅ closes when user taps outside
         },
@@ -249,14 +250,13 @@ fun openDialogbox(showDialog: Boolean, dissmis: () -> Unit, selectedId: String) 
 
                             // Add data in firebase
 
-
                             val foodItemobj = FoodItem1(
-                                id = "",
                                 category = category,
                                 food = food,
-                                price = price.toInt()
+                                price = price.toInt(),
                             )
 
+                            // store data in firebase firestore
                             val firebaseobj = FirebaseFirestore.getInstance()
                             firebaseobj.collection("FoodItem1")
                                 .add(foodItemobj)
@@ -287,6 +287,7 @@ fun openDialogbox(showDialog: Boolean, dissmis: () -> Unit, selectedId: String) 
         }
 
     )
+
 }
 
 

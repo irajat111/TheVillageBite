@@ -59,8 +59,8 @@ fun HomeScreenUI() {
             )
         },
         bottomBar = {
-            BottomAppBar(containerColor = colorResource(R.color.primaryGreen)) {
-                NavigationBar(containerColor = colorResource(R.color.primaryGreen)) {
+            BottomAppBar(containerColor = colorResource(R.color.cardGreen)) {
+                NavigationBar(containerColor = colorResource(R.color.cardGreen)) {
                     NavigationBarItem(
                         selected = currentRoute == "orders",
                         onClick = {
@@ -110,7 +110,8 @@ fun HomeScreenUI() {
             startDestination = "orders"
         ) {
             composable("orders") { OrdersScreen() }
-            composable("category") { CategoryScreen() }
+            composable("category") { CategoryScreen(navController) }
+            composable("product") { ProductScreen() }
             composable("profile") {
                 ProfileScreen(
                     modifier = Modifier.padding(padding),
