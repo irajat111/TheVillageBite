@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import com.google.firebase.firestore.FirebaseFirestore
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.storage.Storage
 
 
 val Productlist = mutableStateListOf<ProductClass>()
@@ -100,6 +102,13 @@ fun Modifier.Companion.align(bottomEnd: Alignment) {}
 @Composable
 fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: String){
 
+    val supabase = createSupabaseClient(
+        supabaseUrl = SupabaseObject.supaBaseUrl,
+        supabaseKey = SupabaseObject.supaBasekey
+    ) {
+        install(Storage)
+    }
+
     val context = LocalContext.current
     var foodname by remember { mutableStateOf("") }
     var foodprice by remember { mutableStateOf("") }
@@ -113,7 +122,7 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
         content = {
             Box(
                 modifier = Modifier.fillMaxWidth()
-                    .background(color = colorResource(R.color.cardGreen),
+                    .background(color = colorResource(R.color.white),
                 shape = RoundedCornerShape(16.dp)).padding(10.dp),
             ) {
                 Column(

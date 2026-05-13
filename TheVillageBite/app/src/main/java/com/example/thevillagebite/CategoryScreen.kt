@@ -75,12 +75,6 @@ import java.lang.Exception
 @Composable
 fun CategoryScreen(navController: NavController) {
 
-    val supabase = createSupabaseClient(
-            supabaseUrl = "https://bpiqwtvcpwqcmqiyynuu.supabase.co",
-          supabaseKey = "sb_publishable_D6OsW6Fs88RTSzAFgIQh0A_CBY_2uv1"
-    ) {
-        install(Storage)
-        }
     val db = Firebase.firestore
     val context = LocalContext.current
 
@@ -194,7 +188,7 @@ fun CategoryScreen(navController: NavController) {
             onClick = {
                 showDialog = true
             },
-            containerColor  = Color.Green,
+            containerColor  = colorResource(R.color.primaryGreen),
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         ) {
            Icon(Icons.Default.Add,
@@ -209,7 +203,6 @@ fun CategoryScreen(navController: NavController) {
     if(showDialog){
 
         OpenDialogCategory(
-            supabase =supabase,
             showDialog = showDialog,
             dismiss = {showDialog = false},
             selectId = selectId,
@@ -220,7 +213,14 @@ fun CategoryScreen(navController: NavController) {
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
-fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: String, supabase: SupabaseClient) {
+fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: String) {
+
+    val supabase = createSupabaseClient(
+        supabaseUrl = SupabaseObject.supaBaseUrl,
+        supabaseKey = SupabaseObject.supaBasekey
+    ) {
+        install(Storage)
+    }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
     val db  = Firebase.firestore
@@ -241,7 +241,6 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
         imageUri = it
         CoroutineScope(Dispatchers.IO).launch {
             try {
-
 
                 val fileName = "${System.currentTimeMillis()}.jpg"
                 val inputSream = context.contentResolver.openInputStream(imageUri!!)
@@ -285,7 +284,7 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(4.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.Green
+                            containerColor = colorResource(R.color.cardGreen)
                         )
                     ) {
                         Text(
@@ -344,7 +343,7 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
                             shape = RoundedCornerShape(12.dp),
                             elevation = CardDefaults.cardElevation(4.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color.Green
+                                containerColor = colorResource(R.color.cardGreen)
                             )
 //
                         ) {
@@ -432,7 +431,7 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
 
                             },
                             colors = ButtonDefaults.elevatedButtonColors(
-                                containerColor = Color.Green
+                                containerColor = colorResource(R.color.primaryGreen)
                             ),
                             shape = RoundedCornerShape(5.dp),
                         ) {
