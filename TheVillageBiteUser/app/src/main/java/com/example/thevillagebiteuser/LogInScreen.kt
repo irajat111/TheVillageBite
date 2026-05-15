@@ -1,0 +1,315 @@
+package com.example.thevillagebiteuser
+
+
+// LoginScreen.kt
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+
+
+
+@Composable
+fun LoginScreen(navController: NavHostController) {
+
+    val auth  = Firebase.auth
+    val context = LocalContext.current
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    val greenColor = Color(0xFF4CAF50)
+    val textGreen = Color(0xFF2E7D32)
+//    val grayText = Color(0xFF888888)
+    val cardShape = RoundedCornerShape(14.dp)
+
+    // Custom fonts — make sure these are in res/font/
+
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFFF8F2)),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 140.dp)
+        ) {
+
+//            Spacer(Modifier.height(100.dp))
+            // ── Logo ──────────────────────────────────────────
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "App Logo",
+                modifier = Modifier.size(100.dp)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ── App Name ──────────────────────────────────────
+            Text(
+                text = "The Village Bite",
+                fontSize = 30.sp,
+                fontFamily = FontObj.cause,
+                fontWeight = FontWeight.Bold,  // here i apply font style
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // ── Tagline ───────────────────────────────────────
+            Text(
+                text = "Delivery Food at Home",
+                fontSize = 18.sp,
+//                color = grayText,
+                fontFamily =  FontObj.cause,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(11.dp))
+
+            // ── Subtitle ──────────────────────────────────────
+            Text(
+                text = "Login to Your Account",
+                fontSize = 16.sp,
+//                color = grayText,
+                fontFamily =  FontObj.cause,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── Email Field ───────────────────────────────────
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                placeholder = {
+                    Text("Email", fontFamily =  FontObj.cause,)
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Email,
+                        contentDescription = "Email Icon",
+//                        tint = grayText
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(57.dp),
+                shape = cardShape,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    focusedBorderColor = greenColor,
+                    unfocusedBorderColor = Color(0xFFDDDDDD)
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── Password Field ────────────────────────────────
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+//                placeholder = {
+//                    Text("Password", )
+//                },
+               label = {Text("Enter Name",fontFamily =  FontObj.cause)},
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = "Password Icon",
+//                        tint = grayText
+                    )
+                },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(57.dp),
+                shape = cardShape,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    focusedBorderColor = greenColor,
+                    unfocusedBorderColor = Color(0xFFDDDDDD)
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── Or Divider ────────────────────────────────────
+            Text(text = "Or",
+//                color = grayText,
+                fontSize = 13.sp)
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Continue With",
+                fontSize = 22.sp,
+//                color = textGreen,
+                fontFamily =  FontObj.cause,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── Social Buttons Row ────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Google
+                OutlinedButton(
+                    onClick = {},
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(57.dp),
+                    shape = cardShape,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White
+                    )
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.google),
+                        contentDescription = "Google",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Google",
+                        color = Color.DarkGray,
+                        fontFamily =  FontObj.cause,
+                    )
+                }
+
+                // Facebook
+                OutlinedButton(
+                    onClick = {},
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(57.dp),
+                    shape = cardShape,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White
+                    )
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.facebook),
+                        contentDescription = "Facebook",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Facebook",
+                        color = Color.DarkGray,
+                        fontFamily =  FontObj.cause,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── Login Button ──────────────────────────────────
+//            Button(
+//                onClick = onLoginClick,
+//                modifier = Modifier
+//                    .width(152.dp)
+//                    .height(57.dp),
+//                shape = cardShape,
+//                colors = ButtonDefaults.buttonColors(
+////                    containerColor = greenColor
+//                )
+//            ) {
+//                Text(
+//                    text = "Login",
+//                    fontSize = 20.sp,
+//                    color = Color.White,
+//                    fontFamily =  FontObj.cause,
+//                )
+//            }
+            ElevatedButton(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
+                shape = RoundedCornerShape(7.dp),
+                onClick = {
+                    if (email.isEmpty()) {
+                        Toast.makeText(context, "Enter Email", Toast.LENGTH_SHORT).show()
+                    } else if (password.isEmpty()) {
+                        Toast.makeText(context, "Enter Password", Toast.LENGTH_SHORT).show()
+                    }else {
+                        auth.signInWithEmailAndPassword(email, password)
+                            .addOnCompleteListener {
+                                if (it.isSuccessful) {
+                                    Toast.makeText(context, "Login Successfully", Toast.LENGTH_SHORT).show()
+                                     // ✅ NavController navigate karega
+                                } else {
+                                    Toast.makeText(context, it.exception?.message, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        Log.i("Credential", "Email : $email Password : $password")
+                    }
+                        navController.navigate("Home")
+                },
+                colors = ButtonDefaults.elevatedButtonColors(
+                    containerColor = colorResource(R.color.primaryGreen)
+                )
+
+            ) {
+                Text("logIn", color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── Don't Have Account ────────────────────────────
+            TextButton(onClick = {
+                navController.navigate("signup")
+            }) {
+                Text(
+                    text = "Don't Have Account?",
+//                    color = grayText,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // ── Footer ────────────────────────────────────────
+            Text(
+                text = "Design By\nRajat Singh",
+                fontSize = 16.sp,
+//                color = grayText,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+        }
+    }
+}

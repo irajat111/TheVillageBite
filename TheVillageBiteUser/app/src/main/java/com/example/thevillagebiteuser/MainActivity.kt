@@ -1,4 +1,4 @@
-package com.example.thevillagebite
+package com.example.thevillagebiteuser
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,6 +19,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -28,27 +30,43 @@ fun AppNavigation() {
         startDestination = "splash"
     ) {
         composable("splash") {
-            SplashScreenUI(
+            SplashScreenuser(
                 onFinish = {
-                    navController.navigate("login") {
+                    navController.navigate("SignUp") {
                         popUpTo("splash") { inclusive = true }
                     }
-                }
+                },
+
+                navController
             )
         }
 
+        // ✅ ADD SignUpScreen
+        composable("signup") {
+            SignUpScreen(navController = navController)
+        }
+
+        // ✅ ADD LoginScreen
         composable("login") {
-            LoginScreenUI(
-                onLoginSuccess = {
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                }
-            )
+            LoginScreen(navController = navController)
         }
 
-        composable("home") {
-            HomeScreen()
+        // ADD HomeScreen
+        composable("Home") {
+            HomeScreen(navController = navController)
         }
+
+        composable("cart") {
+            CartScreen(navController = navController)
+        }
+
+        composable("Profile") {
+            ProfileScreen(navController = navController)
+        }
+
+        composable() {
+
+        }
+
     }
 }
