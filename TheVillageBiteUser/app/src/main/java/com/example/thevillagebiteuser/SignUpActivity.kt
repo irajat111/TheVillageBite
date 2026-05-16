@@ -1,5 +1,6 @@
 package com.example.thevillagebiteuser
 
+import android.os.Bundle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,14 +21,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.input.VisualTransformation
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 
 
+class SignUpActivity : ComponentActivity(){
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+
+        }
+    }
+}
 
 @Composable
 fun SignUpScreen(navController: androidx.navigation.NavController) {
@@ -36,7 +51,11 @@ fun SignUpScreen(navController: androidx.navigation.NavController) {
     val auth = Firebase.auth
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+//    var password by remember { mutableStateOf("") }
+
+    // this var is created for traivilijng eye icon
+//    var passwordVisible by remember{ mutableStateOf(false)}
+//    var passwordError by remember { mutableStateOf("") }
 
 
 
@@ -148,30 +167,186 @@ fun SignUpScreen(navController: androidx.navigation.NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── Password Field ────────────────────────────────
+            // ── Password Field ───────────────────────────────────
+//            OutlinedTextField(
+//                value = password,
+//                onValueChange = {
+//                    password = it
+//                    // ✅ Real-time validation — type karte waqt error clear hoga
+//                    var passwordError = when {
+//                        it.isEmpty() -> "Password cannot be empty"
+//                        it.length < 6 -> "Minimum 6 characters required"
+//                        !it.any { c -> c.isUpperCase() } -> "At least 1 uppercase letter required"
+//                        !it.any { c -> c.isDigit() } -> "At least 1 number required"
+//                        else -> ""   // sab sahi hai — error clear karo
+//                    }
+//                },
+//                label = { Text("Enter Password") },
+//
+//                // ── Leading Icon — Lock ──────────────────────────
+//                leadingIcon = {
+//                    Icon(
+//                        imageVector = Icons.Outlined.Lock,
+//                        contentDescription = "Password Icon"
+//                    )
+//                },
+//
+//                // ── Trailing Icon — Eye Toggle ───────────────────
+//                trailingIcon = {
+//                    val icon = if (passwordVisible) {
+//                        Icons.Filled.Visibility
+//                    } else {
+//                        Icons.Filled.VisibilityOff
+//                    }
+//                    IconButton(onClick = {
+//                        passwordVisible = !passwordVisible
+//                    }) {
+//                        Icon(
+//                            imageVector = icon,
+//                            contentDescription = if (passwordVisible) "Hide Password" else "Show Password"
+//                        )
+//                    }
+//                },
+//
+//                // ── Show/Hide Password ───────────────────────────
+//                visualTransformation = if (passwordVisible) {
+//                    VisualTransformation.None
+//                } else {
+//                    PasswordVisualTransformation()
+//                },
+//
+//                // ── Error State ──────────────────────────────────
+//                isError = passwordError.isNotEmpty(),
+//                supportingText = {
+//                    if (passwordError.isNotEmpty()) {
+//                        Text(
+//                            text = passwordError,
+//                            color = Color.Red,
+//                            fontSize = 12.sp
+//                        )
+//                    }
+//                },
+//
+//                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(57.dp),
+//                shape = cardShape,
+//                singleLine = true,
+//                colors = OutlinedTextFieldDefaults.colors(
+//                    unfocusedContainerColor = Color.White,
+//                    focusedContainerColor = Color.White,
+//                    focusedBorderColor = greenColor,
+//                    unfocusedBorderColor = Color(0xFFDDDDDD),
+//                    errorBorderColor = Color.Red,           // ✅ error mein border red hoga
+//                    errorContainerColor = Color.White
+//                )
+//            )
+
+                // State Variables
+            var password by remember { mutableStateOf("") }
+            var passwordVisible by remember { mutableStateOf(false) }
+            var passwordError by remember { mutableStateOf("") }
+
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Lock, contentDescription = "Password Icon")
+
+                onValueChange = {
+                    password = it
+
+                    passwordError = when {
+                        it.isEmpty() -> "Password cannot be empty"
+                        it.length < 6 -> "Minimum 6 characters required"
+                        !it.any { c -> c.isUpperCase() } ->
+                            "At least 1 uppercase letter required"
+                        !it.any { c -> c.isDigit() } ->
+                            "At least 1 number required"
+                        else -> ""
+                    }
                 },
-                label = {Text("Enter password")},
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+
+                label = {
+                    Text("Enter Password")
+                },
+
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = "Password Icon"
+                    )
+                },
+
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            passwordVisible = !passwordVisible
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (passwordVisible)
+                                Icons.Filled.Visibility
+                            else
+                                Icons.Filled.VisibilityOff,
+                            contentDescription = if (passwordVisible)
+                                "Hide Password"
+                            else
+                                "Show Password"
+                        )
+                    }
+                },
+
+                // Password hide/show logic
+                visualTransformation =
+                    if (passwordVisible)
+                        VisualTransformation.None
+                    else
+                        PasswordVisualTransformation(),
+
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password
+                ),
+
+                isError = passwordError.isNotEmpty(),
+
+                supportingText = {
+                    if (passwordError.isNotEmpty()) {
+                        Text(
+                            text = passwordError,
+                            color = Color.Red,
+                            fontSize = 12.sp
+                        )
+                    }
+                },
+
+                // IMPORTANT: height remove kar diya
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(57.dp),
-                shape = cardShape,
+                    .fillMaxWidth(),
+
                 singleLine = true,
 
+                shape = RoundedCornerShape(12.dp),
+
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    cursorColor = Color.Black,
+
                     unfocusedContainerColor = Color.White,
                     focusedContainerColor = Color.White,
-                    focusedBorderColor = greenColor,
-                    unfocusedBorderColor = Color(0xFFDDDDDD)
-                )
 
+                    focusedBorderColor = Color.Green,
+                    unfocusedBorderColor = Color.LightGray,
+
+                    errorBorderColor = Color.Green,
+                    errorContainerColor = Color.White
+                )
             )
+
+
+
+
+
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -254,23 +429,54 @@ fun SignUpScreen(navController: androidx.navigation.NavController) {
 
 
             ElevatedButton(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 5.dp),
                 shape = RoundedCornerShape(7.dp),
                 onClick = {
-                    if (name.isEmpty()){
-                        Toast.makeText(context,"Enter Name",Toast.LENGTH_SHORT).show()
-                    } else if (email.isEmpty()) {
+
+                    // ── Step 1: Name Validation ──────────────────
+                    if (name.isEmpty()) {
+                        Toast.makeText(context, "Enter Name", Toast.LENGTH_SHORT).show()
+                    }
+                    // ── Step 2: Email Validation ─────────────────
+                    else if (email.isEmpty()) {
                         Toast.makeText(context, "Enter Email", Toast.LENGTH_SHORT).show()
-                    } else if (password.isEmpty()) {
-                        Toast.makeText(context, "Enter Password", Toast.LENGTH_SHORT).show()
-                    }else {
-                        auth.signInWithEmailAndPassword(email, password)
+                    }
+                    else if (!email.endsWith("@gmail.com")) {
+                        Toast.makeText(context, "Enter with @gmail.com", Toast.LENGTH_SHORT).show()
+                    }
+                    // ── Step 3: Password Validations ─────────────
+                    else if (password.isEmpty()) {
+                        passwordError = "Password cannot be empty"
+                    }
+                    else if (password.length < 6) {
+                        passwordError = "Minimum 6 characters required"
+                    }
+                    else if (!password.any { it.isUpperCase() }) {
+                        passwordError = "At least 1 uppercase letter required"
+                    }
+                    else if (!password.any { it.isDigit() }) {
+                        passwordError = "At least 1 number required"
+                    }
+                    // ── Step 4: Sab Sahi — Firebase SignUp ───────
+                    else {
+                        passwordError = ""   // error clear karo
+                        auth.createUserWithEmailAndPassword(email, password)
                             .addOnCompleteListener {
                                 if (it.isSuccessful) {
-                                    Toast.makeText(context, "Login Successfully", Toast.LENGTH_SHORT).show()
-                                    // ✅ NavController navigate karega
+                                    Toast.makeText(
+                                        context,
+                                        "SignUp Successfully",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    // ✅ yahan navigate karo signup ke baad
                                 } else {
-                                    Toast.makeText(context, it.exception?.message, Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        it.exception?.message,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             }
                         Log.i("Credential", "Email : $email Password : $password")
@@ -279,14 +485,17 @@ fun SignUpScreen(navController: androidx.navigation.NavController) {
                 colors = ButtonDefaults.elevatedButtonColors(
                     containerColor = colorResource(R.color.primaryGreen)
                 )
-            ){
-//                text = "Create Account",
-//                    fontSize = 18.sp,
-//                    color = Color.White,
-//                    fontFamily = FontFamily.Serif,
-//                    textAlign = TextAlign.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Login,
+                    contentDescription = "Logout",
+                    tint = Color.Red
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text ="SignUp"
+                    text = "Signup",
+                    fontSize = 18.sp,
+                    color = Color.White
                 )
             }
 

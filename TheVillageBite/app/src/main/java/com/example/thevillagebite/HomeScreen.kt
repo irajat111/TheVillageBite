@@ -1,10 +1,6 @@
 package com.example.thevillagebite
 
 import android.os.Build
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -17,34 +13,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 
-class HomeScreen : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            HomeScreenUI()
-        }
-    }
-}
-
+// ✅ Class hatao, sirf Composable rakho
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Preview(showSystemUi = true)
 fun HomeScreenUI() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-
-    //  Title synchronizes with current route
     val topBarTitle = when (currentRoute) {
         "orders"   -> "Orders"
         "category" -> "Category"
@@ -55,7 +37,6 @@ fun HomeScreenUI() {
     Scaffold(
         topBar = {
             TopAppBar(
-                // ✅ Aur TopAppBar mein hardcoded-text(The Village Bite) ki jagah variable diya
                 title = { Text(topBarTitle, color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colorResource(id = R.color.primaryGreen)
@@ -63,8 +44,8 @@ fun HomeScreenUI() {
             )
         },
         bottomBar = {
-            BottomAppBar(containerColor = colorResource(R.color.cardGreen)) {
-                NavigationBar(containerColor = colorResource(R.color.cardGreen)) {
+            BottomAppBar(containerColor = colorResource(R.color.primaryGreen)) {
+                NavigationBar(containerColor = colorResource(R.color.primaryGreen)) {
                     NavigationBarItem(
                         selected = currentRoute == "orders",
                         onClick = {
@@ -74,8 +55,7 @@ fun HomeScreenUI() {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(Icons.Filled.ShoppingCart,
-                            contentDescription = "Orders") },
+                        icon = { Icon(Icons.Filled.ShoppingCart, contentDescription = "Orders") },
                         label = { Text("Orders") }
                     )
                     NavigationBarItem(
@@ -87,8 +67,7 @@ fun HomeScreenUI() {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(Icons.Filled.List,
-                            contentDescription = "Category") },
+                        icon = { Icon(Icons.Filled.List, contentDescription = "Category") },
                         label = { Text("Category") }
                     )
                     NavigationBarItem(
@@ -100,8 +79,7 @@ fun HomeScreenUI() {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(Icons.Filled.AccountCircle,
-                            contentDescription = "Profile") },
+                        icon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Profile") },
                         label = { Text("Profile") }
                     )
                 }
@@ -114,8 +92,11 @@ fun HomeScreenUI() {
             startDestination = "orders"
         ) {
             composable("orders") { OrdersScreen() }
+
             composable("category") { CategoryScreen(navController) }
+
             composable("product") { ProductScreen() }
+
             composable("profile") {
                 ProfileScreen(
                     modifier = Modifier.padding(padding),

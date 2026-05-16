@@ -23,6 +23,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".DashBoardActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TheVillageBiteUser">
+        </activity>
+
 
 <!--        <activity-->
 <!--            android:name=".SignUpActivity"-->

@@ -40,7 +40,7 @@ fun SplashScreenuser(onFinish: () -> Unit,navController: NavController ) {
         delay(3000)
         onFinish()
         if(auth.currentUser?.uid!=null){
-            context.startActivity(Intent(context, MainActivity::class.java))
+            context.startActivity(Intent(context, DashBoardActivity::class.java))
             onFinish()
         }else{
            navController.navigate("signup")

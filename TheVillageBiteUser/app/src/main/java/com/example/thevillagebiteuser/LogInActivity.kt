@@ -2,15 +2,26 @@ package com.example.thevillagebiteuser
 
 
 // LoginScreen.kt
+import android.app.Activity
+import android.content.Intent
+import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Visibility      // ✅ add
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.ExitToApp
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,22 +33,37 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lint.kotlin.metadata.Visibility
 import androidx.navigation.NavHostController
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 
 
 
+class LogInActivity : ComponentActivity(){
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+//            LoginScreen()
+        }
+    }
+}
+
 @Composable
-fun LoginScreen(navController: NavHostController) {
+fun LoginScreen(navController: NavHostController, onFinish: () -> Unit) {
 
     val auth  = Firebase.auth
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // this var is created for traivilijng eye icon
+    var passwordVisible by remember{ mutableStateOf(false)}
 
     val greenColor = Color(0xFF4CAF50)
     val textGreen = Color(0xFF2E7D32)
@@ -137,18 +163,38 @@ fun LoginScreen(navController: NavHostController) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-//                placeholder = {
-//                    Text("Password", )
-//                },
-               label = {Text("Enter Name",fontFamily =  FontObj.cause)},
+                label = { Text("Enter Password", fontFamily = FontObj.cause) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Outlined.Lock,
-                        contentDescription = "Password Icon",
-//                        tint = grayText
+                        contentDescription = "Password Icon"
                     )
                 },
-                visualTransformation = PasswordVisualTransformation(),
+
+                // ✅ CHANGE 1 — Eye icon trailingIcon mein add kiya
+                trailingIcon = {
+                    val icon = if (passwordVisible) {
+                        Icons.Filled.Visibility        // Eye open — password dikh raha hai
+                    } else {
+                        Icons.Filled.VisibilityOff     // Eye closed — password chupa hua hai
+                    }
+                    IconButton(onClick = {
+                        passwordVisible = !passwordVisible   // toggle karo
+                    }) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = if (passwordVisible) "Hide Password" else "Show Password"
+                        )
+                    }
+                },
+
+                // ✅ CHANGE 2 — visualTransformation state se control hogi
+                visualTransformation = if (passwordVisible) {
+                    VisualTransformation.None            // password dikhao
+                } else {
+                    PasswordVisualTransformation()       // password chupao ••••
+                },
+
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -261,28 +307,43 @@ fun LoginScreen(navController: NavHostController) {
                 onClick = {
                     if (email.isEmpty()) {
                         Toast.makeText(context, "Enter Email", Toast.LENGTH_SHORT).show()
-                    } else if (password.isEmpty()) {
+                    }
+                    else if (!email.endsWith("@gmail.com")) {
+                        Toast.makeText(context, "Enter Gmail with @gmail.com", Toast.LENGTH_SHORT).show()
+                    }
+                    else if (password.isEmpty()) {
                         Toast.makeText(context, "Enter Password", Toast.LENGTH_SHORT).show()
-                    }else {
+                    }
+                    else {
                         auth.signInWithEmailAndPassword(email, password)
                             .addOnCompleteListener {
                                 if (it.isSuccessful) {
                                     Toast.makeText(context, "Login Successfully", Toast.LENGTH_SHORT).show()
                                      // ✅ NavController navigate karega
+                                    context.startActivity(Intent(context, DashBoardActivity::class.java))
+                                    (context as Activity).finish()
+                                    onFinish()
+
                                 } else {
                                     Toast.makeText(context, it.exception?.message, Toast.LENGTH_SHORT).show()
                                 }
                             }
                         Log.i("Credential", "Email : $email Password : $password")
                     }
-                        navController.navigate("Home")
+//                        navController.navigate("Home")
                 },
                 colors = ButtonDefaults.elevatedButtonColors(
                     containerColor = colorResource(R.color.primaryGreen)
                 )
 
             ) {
-                Text("logIn", color = Color.White)
+                Icon(
+                    imageVector = Icons.Outlined.Login,
+                    contentDescription = "Logout",
+                    tint = Color.Red
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("login", fontSize = 18.sp ,color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(16.dp))

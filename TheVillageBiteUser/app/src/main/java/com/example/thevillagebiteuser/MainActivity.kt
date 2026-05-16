@@ -48,25 +48,30 @@ fun AppNavigation() {
 
         // ✅ ADD LoginScreen
         composable("login") {
-            LoginScreen(navController = navController)
+            LoginScreen(navController = navController,
+                onFinish = {
+                    navController.navigate("splash") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                },)
         }
 
         // ADD HomeScreen
-        composable("Home") {
-            HomeScreen(navController = navController)
-        }
-
-        composable("cart") {
-            CartScreen(navController = navController)
-        }
-
-        composable("Profile") {
-            ProfileScreen(navController = navController)
-        }
-
-        composable() {
-
-        }
+//        composable("Home") {
+//            HomeScreen(navController = navController)
+//        }
+//
+//        composable("cart") {
+//            CartScreen(navController = navController)
+//        }
+//
+//        composable("Profile") {
+//            ProfileScreen(navController = navController)
+//        }
+//
+//        composable() {
+//
+//        }
 
     }
 }

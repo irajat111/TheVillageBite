@@ -2,31 +2,45 @@ package com.example.thevillagebite
 
 import android.R.attr.maxLines
 import android.net.Uri
+import android.os.Build
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -40,51 +54,206 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.lang.Exception
 
 
-val Productlist = mutableStateListOf<ProductClass>()
 
-    data class ProductClass(
+data class ProductClass(
         var id: String? = "",
         val foodname: String? = "",
         val foodprice: Double? = 0.0,
-        val foodimg: String? = "",
-        val foodDescriprion: String? = ""
+//        val foodimg: String? = "",
+        val foodDescriprion: String? = "",
+        val productImage: String? = null
     )
 
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Preview(showSystemUi = true)
 @Composable()
 fun ProductScreen() {
-
+    val db = Firebase.firestore
     var showDialog by remember { mutableStateOf(false) }
     var selectedId by remember { mutableStateOf("") }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        FloatingActionButton(
-            onClick = { showDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = colorResource(R.color.primaryGreen)
-        ) {
-            Icon(
-                Icons.Default.Add,
-                contentDescription = "",
-                tint = Color.White
-            )
+    // ✅ CHANGE 1 — ProductClass use kiya, pehle CategoryClass tha
+    var ProductList = remember { mutableStateListOf<ProductClass>() }
+
+
+    //    Fetch data from Firestore (same as CategoryScreen)
+    LaunchedEffect(Unit) {
+        db.collection("Productclass").addSnapshotListener { result, error->
+            if(error!=null){
+                return@addSnapshotListener
+            }
+            for(doc in result!!.documentChanges){
+                when(doc.type){
+                    DocumentChange.Type.ADDED -> {
+                        val model = doc.document.toObject(ProductClass::class.java)
+                        model.id = doc.document.id
+                        ProductList.add(model)
+                    }
+                    DocumentChange.Type.MODIFIED -> {
+                        val model = doc.document.toObject(ProductClass::class.java)
+                        model.id = doc.document.id
+                        val index = ProductList.indexOfFirst { it.id == model.id}
+                        if(index!=-1){
+                            ProductList[index] = model
+                        }
+
+                    }
+                    DocumentChange.Type.REMOVED -> {
+                        val model = doc.document.toObject(CategoryClass::class.java)
+                        model.id = doc.document.id
+                        val index = ProductList.indexOfFirst { it.id == model.id}
+                        if(index!=-1){
+                            ProductList.removeAt(index)
+                        }
+
+                    }
+                }
+            }
+
         }
     }
+
+
+
+//    // ✅ CHANGE 2 — "Productclass" collection fetch ho rahi hai, pehle "category" tha
+//    LaunchedEffect(Unit) {
+//        db.collection("Productclass").addSnapshotListener { result, error ->
+//            if (error != null) return@addSnapshotListener
+//
+//            for (doc in result!!.documentChanges) {
+//                when (doc.type) {
+//
+//                    // ✅ CHANGE 3 — toObject mein ProductClass use kiya, pehle CategoryClass tha
+//                    DocumentChange.Type.ADDED -> {
+//                        val model = doc.document.toObject(ProductClass::class.java)
+//                        model.id = doc.document.id
+//                        productList.add(model)
+//                    }
+//                    DocumentChange.Type.MODIFIED -> {
+//                        val model = doc.document.toObject(ProductClass::class.java)
+//                        model.id = doc.document.id
+//                        val index = productList.indexOfFirst { it.id == model.id }
+//                        if (index != -1) productList[index] = model
+//                    }
+//                    DocumentChange.Type.REMOVED -> {
+//                        val model = doc.document.toObject(ProductClass::class.java)
+//                        model.id = doc.document.id
+//                        val index = productList.indexOfFirst { it.id == model.id }
+//                        if (index != -1) productList.removeAt(index)
+//                    }
+//                }
+//            }
+//        }
+//    }
+
+
+
+//    Box(
+//        modifier = Modifier.fillMaxSize()
+//    ) {
+
+
+        Box(Modifier.fillMaxSize()){
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(ProductList.size){index->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable(){
+                            // yhan pr InsideProductItem Screen show krwaani hai
+//                            navController.navigate("product")
+                        },
+                    ) {
+
+                        println("Checck image form Firebase: ${ ProductList[index].productImage}")
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(ProductList[index].productImage)
+                                    .crossfade(true)
+                                    .build(),
+                                placeholder = painterResource(R.drawable.ic_launcher_background),
+                                contentDescription = stringResource(R.string.app_name),
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxWidth().height(150.dp),
+
+                                )
+                            Spacer(Modifier.height(5.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                // changes here productList[index].categoryName..toString()
+                                Text(ProductList[index].foodname?:"",
+                                    textAlign = TextAlign.Center)
+
+                                Spacer(Modifier.height(10.dp))
+
+                                Spacer(Modifier.weight(1f))
+                                IconButton(
+                                    onClick = {
+                                        deleteProduct(ProductList[index].id)
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "DELETE",
+                                        tint = Color.Red
+                                    )
+                                }
+                            }
+                        }
+
+                    }
+
+                }
+            }
+
+
+            FloatingActionButton(
+                onClick = {
+                    showDialog = true
+                },
+                containerColor  = colorResource(R.color.primaryGreen),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+            ) {
+                Icon(Icons.Default.Add,
+                    tint = Color.White,
+                    contentDescription = "")
+            }
+
+
+        }
+
 
 
     if (showDialog){
@@ -97,19 +266,68 @@ fun ProductScreen() {
 
 }
 
-fun Modifier.Companion.align(bottomEnd: Alignment) {}
+//fun Modifier.Companion.align(bottomEnd: Alignment) {}
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: String){
 
+    // supabase code
     val supabase = createSupabaseClient(
         supabaseUrl = SupabaseObject.supaBaseUrl,
         supabaseKey = SupabaseObject.supaBasekey
     ) {
         install(Storage)
     }
-
     val context = LocalContext.current
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // ✅ CHANGE 1 — Naya variable add kiya loader ke liye
+    var isImageUploading by remember { mutableStateOf(false) }
+
+    val imagePermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        if (it) {
+            Toast.makeText(context, "Permission Granted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Permission Not Granted", Toast.LENGTH_SHORT).show()
+
+        }
+    }
+
+    var imageUrl by remember { mutableStateOf("") }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
+        imageUri = it
+
+
+        isImageUploading = true  // 👈 Loader START
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+
+                    val fileName = "${System.currentTimeMillis()}.jpg"
+                    val inputSream = context.contentResolver.openInputStream(imageUri!!)
+                    val bytes = inputSream?.readBytes()
+
+                    val bucket = supabase.storage.from("village_bite")
+                    bucket.upload(
+                        path = fileName,
+                        data = bytes!!,
+                    )
+
+
+                    imageUrl = bucket.publicUrl(fileName)
+                    println("Check Image Url : $imageUrl")
+            }catch (e: Exception){
+                println("Check Exceptin of Image: ${e.message}")
+            }finally {
+                isImageUploading = false  // 👈 Loader STOP
+            }
+        }
+    }
+
+
     var foodname by remember { mutableStateOf("") }
     var foodprice by remember { mutableStateOf("") }
     var foodimg by remember { mutableStateOf("") }
@@ -128,7 +346,7 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(5.dp)
                 ) {
-                    Card(
+                    Card(  // title card
                         modifier = Modifier.fillMaxWidth(),
                         elevation = CardDefaults.cardElevation(4.dp),
                         colors = CardDefaults.cardColors(
@@ -143,36 +361,66 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
                         )
                     }
 
-                    var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-                    if (imageUri == null) {
-                        Image(
-                            painterResource(R.drawable.ic_launcher_background),
-                            contentDescription = "",
-                            modifier = Modifier.fillMaxWidth().padding(10.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .padding(10.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (imageUri == null) {
+                            // Koi image nahi chuni — placeholder dikhao
+                            Image(
+                                painterResource(R.drawable.ic_launcher_background),
+                                contentDescription = "",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            // Image chun li — dikhao
+                            AsyncImage(
+                                model = imageUri,
+                                placeholder = painterResource(R.drawable.ic_launcher_background),
+                                contentDescription = "",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                // ✅ CHANGE 4 — Image load hone par Toast dikhao
+                                onSuccess = {
+                                    Toast.makeText(context, "Image Loaded!", Toast.LENGTH_SHORT).show()
+                                }
+                            )
 
-                    } else {
-                        AsyncImage(
-                            model = imageUri,
-                            placeholder = painterResource(R.drawable.ic_launcher_background),
-                            contentDescription = "",
-                            modifier = Modifier.fillMaxWidth().padding(10.dp)
-                        )
+                            // ✅ CHANGE 5 — Upload ke time loader dikhao
+                            if (isImageUploading) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.4f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = colorResource(R.color.primaryGreen)
+                                    )
+                                }
+                            }
+
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(5.dp))
+//                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
 
                     Card(
                         onClick = {
-//                            if (checkPermisison(context)) {
-//                                imagePicker.launch("image/*")
-//                            } else {
-//                                imagePermission.launch(android.Manifest.permission.READ_MEDIA_IMAGES)
-//                            }
+                            if (checkPermisison(context)) {
+                                imagePicker.launch("image/*")
+                            } else {
+                                imagePermission.launch(android.Manifest.permission.READ_MEDIA_IMAGES)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -189,15 +437,7 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (imageUri != null) {
-                                // ✅ Show selected image
-                                AsyncImage(
-                                    model = imageUri,
-                                    contentDescription = "Selected Image",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
+
                                 // ✅ Show placeholder when no image selected
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally
@@ -214,7 +454,7 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
                                         color = Color.Gray
                                     )
                                 }
-                            }
+//
                         }
                     }
 
@@ -256,12 +496,13 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
                                 dissmis()  // ✅ dialog band karo
                             }
 
-                            // Add data in firebase
 
+                            // Add data in firebase
                             val productItemobj = ProductClass(  // dataclass name
                                 foodname = foodname,
                                 foodprice = foodprice.toDouble(),
-                                foodimg = foodimg,
+//                                foodimg = foodimg,
+                                productImage = imageUrl,
                                 foodDescriprion = foodDescription
                             )
 
@@ -295,4 +536,13 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
     )
 
 }
+fun deleteProduct(docId: String? = "") {
+    val db = FirebaseFirestore.getInstance()
+    db.collection("Productclass").document(docId ?: "").delete()
+        .addOnSuccessListener { Log.d("firestore", "Document Successfully Deleted!") }
+        .addOnFailureListener { Log.d("firestore", "Delete Failed", it) }
+}
+
+
+
 

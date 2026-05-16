@@ -10,10 +10,10 @@ package com.example.thevillagebite.DataClasses
 //)
 
 
-data class FoodItem(
-    var id: String? = "",
-    val categoryName: String? = "",
-    var image: String?=null
-)
+//data class FoodItem(
+//    var id: String? = "",
+//    val categoryName: String? = "",
+//    var image: String?=null
+//)
 
 

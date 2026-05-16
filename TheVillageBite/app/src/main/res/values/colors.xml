@@ -9,6 +9,6 @@
     <color name="white">#FFFFFFFF</color>
     <color name="textColor">#000000</color> <!-- Black -->
 <!--    <color name="primaryGreen">#3FCE72</color>-->
-    <color name="primaryGreen">#4CAF50</color>
-    <color name="cardGreen">#F1F8E9</color>
+    <color name="primaryGreen">#5ADC5D</color>
+    <color name="cardGreen">#C4FFC8</color>
 </resources>

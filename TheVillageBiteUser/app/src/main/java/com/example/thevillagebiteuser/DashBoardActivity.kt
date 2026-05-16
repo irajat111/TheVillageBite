@@ -1,11 +1,14 @@
 package com.example.thevillagebiteuser
 
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,14 +18,37 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 
 
+class DashBoardActivity : ComponentActivity(){
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            DashBoardScreen()
+        }
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun DashBoardScreen() {
 
     var selectedId by remember { mutableStateOf(0) }
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoot = navBackStackEntry?.destination?.route?:""
+
+    val screenTitles = mapOf(
+        "category" to "Category",
+        "profile" to "Profile",
+        "cart" to "Cart"
+    )
+
+    val appBarTitle = screenTitles[currentRoot]
 
 
 
@@ -33,7 +59,7 @@ fun HomeScreen(navController: NavController) {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Home",
+                        text = appBarTitle.toString(),
                         fontSize = 20.sp
                     )
                 },
@@ -46,19 +72,19 @@ fun HomeScreen(navController: NavController) {
         },
 
         // ── FAB ──────────────────────────────────────────
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { },
-//                containerColor = Color(0xFF6650A4),
-                containerColor = colorResource(R.color.primaryGreen),
-                contentColor = Color.White
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Add"
-                )
-            }
-        },
+//        floatingActionButton = {
+//            FloatingActionButton(
+//                onClick = { },
+////                containerColor = Color(0xFF6650A4),
+//                containerColor = colorResource(R.color.primaryGreen),
+//                contentColor = Color.White
+//            ) {
+//                Icon(
+//                    imageVector = Icons.Filled.Add,
+//                    contentDescription = "Add"
+//                )
+//            }
+//        },
 
         // ── BOTTOM BAR ───────────────────────────────────
         bottomBar = {
@@ -70,7 +96,7 @@ fun HomeScreen(navController: NavController) {
                 NavigationBarItem(
                     selected = selectedId == 0,
                     onClick = { selectedId = 0
-                        navController.navigate("Home")},  // ✅ = fixed
+                        navController.navigate("category")},  // ✅ = fixed
                     icon = {
                         Icon(
                             imageVector = Icons.Filled.Menu,
@@ -112,7 +138,7 @@ fun HomeScreen(navController: NavController) {
                 NavigationBarItem(
                     selected = selectedId == 2,
                     onClick = { selectedId = 2
-                        navController.navigate("Profile")},  // ✅ = fixed
+                        navController.navigate("profile")},  // ✅ = fixed
                     icon = {
                         Icon(
                             imageVector = Icons.Filled.Person,
@@ -133,20 +159,46 @@ fun HomeScreen(navController: NavController) {
         }
 
     ) { innerPadding ->
+        NavHost(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            startDestination = "category",
+            navController = navController,
+        ){
+            composable("category") {
+                CategoryScreen()
+            }
 
-        // ── CONTENT ──────────────────────────────────────
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Welcome to DashBoard!",
-                fontSize = 22.sp
-            )
+            composable("cart") {
+                CartScreen()
+            }
+            composable("profile") {
+                ProfileScreen(navController)
+            }
+
+            composable("productScreen") {
+                ProductScreen()
+            }
+
+            composable("productDetail") {
+                ProductDetailScreen()
+            }
         }
+
+    }
+}
+
+@Composable
+fun ProductDetailScreen() {
+}
+
+@Composable
+fun ProductScreen() {
+}
+
+@Composable
+fun CategoryScreen() {
+    Box(Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center){
+        Text("Category Screen")
     }
 }
