@@ -1,6 +1,5 @@
 package com.example.thevillagebite
 
-import android.R.attr.maxLines
 import android.net.Uri
 import android.os.Build
 import android.util.Log
@@ -60,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -88,9 +88,9 @@ data class ProductClass(
 
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-@Preview(showSystemUi = true)
+//@Preview(showSystemUi = true)
 @Composable()
-fun ProductScreen() {
+fun ProductScreen(navController: NavHostController) {
     val db = Firebase.firestore
     var showDialog by remember { mutableStateOf(false) }
     var selectedId by remember { mutableStateOf("") }
@@ -138,44 +138,6 @@ fun ProductScreen() {
 
 
 
-//    // ✅ CHANGE 2 — "Productclass" collection fetch ho rahi hai, pehle "category" tha
-//    LaunchedEffect(Unit) {
-//        db.collection("Productclass").addSnapshotListener { result, error ->
-//            if (error != null) return@addSnapshotListener
-//
-//            for (doc in result!!.documentChanges) {
-//                when (doc.type) {
-//
-//                    // ✅ CHANGE 3 — toObject mein ProductClass use kiya, pehle CategoryClass tha
-//                    DocumentChange.Type.ADDED -> {
-//                        val model = doc.document.toObject(ProductClass::class.java)
-//                        model.id = doc.document.id
-//                        productList.add(model)
-//                    }
-//                    DocumentChange.Type.MODIFIED -> {
-//                        val model = doc.document.toObject(ProductClass::class.java)
-//                        model.id = doc.document.id
-//                        val index = productList.indexOfFirst { it.id == model.id }
-//                        if (index != -1) productList[index] = model
-//                    }
-//                    DocumentChange.Type.REMOVED -> {
-//                        val model = doc.document.toObject(ProductClass::class.java)
-//                        model.id = doc.document.id
-//                        val index = productList.indexOfFirst { it.id == model.id }
-//                        if (index != -1) productList.removeAt(index)
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-
-
-//    Box(
-//        modifier = Modifier.fillMaxSize()
-//    ) {
-
-
         Box(Modifier.fillMaxSize()){
 
             LazyVerticalGrid(
@@ -188,8 +150,11 @@ fun ProductScreen() {
                     Card(
                         modifier = Modifier.fillMaxWidth().clickable(){
                             // yhan pr InsideProductItem Screen show krwaani hai
-//                            navController.navigate("product")
+                            navController.navigate("productDetails")
                         },
+                        colors = CardDefaults.cardColors(   // card color = white
+                            containerColor = colorResource(R.color.whitefaint)
+                        )
                     ) {
 
                         println("Checck image form Firebase: ${ ProductList[index].productImage}")
@@ -203,10 +168,17 @@ fun ProductScreen() {
                                 placeholder = painterResource(R.drawable.ic_launcher_background),
                                 contentDescription = stringResource(R.string.app_name),
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxWidth().height(150.dp),
+//                                modifier = Modifier.fillMaxWidth().height(150.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(150.dp)
+                                    .padding(8.dp)                        // 👈 Padding
+                                    .clip(RoundedCornerShape(12.dp))   // 👈 Rounded corners
 
                                 )
-                            Spacer(Modifier.height(5.dp))
+
+                            Spacer(Modifier.height(1.dp))
+
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -266,7 +238,6 @@ fun ProductScreen() {
 
 }
 
-//fun Modifier.Companion.align(bottomEnd: Alignment) {}
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
@@ -409,7 +380,6 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
                         }
                     }
 
-//                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 

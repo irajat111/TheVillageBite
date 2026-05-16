@@ -594,9 +594,13 @@ fun CategoryScreen(navController: NavController) {
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable {
                         navController.navigate("product")
-                    }
+                    },
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorResource(R.color.whitefaint)
+                    )
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
                                 .data(categoryList[index].image)
@@ -605,9 +609,16 @@ fun CategoryScreen(navController: NavController) {
                             placeholder = painterResource(R.drawable.ic_launcher_background),
                             contentDescription = stringResource(R.string.app_name),
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxWidth().height(150.dp)
+//
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .padding(8.dp)                        // 👈 Padding
+                                .clip(RoundedCornerShape(12.dp))   // 👈 Rounded corners
                         )
-                        Spacer(Modifier.height(5.dp))
+
+                        Spacer(Modifier.height(1.dp))
+
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -626,6 +637,7 @@ fun CategoryScreen(navController: NavController) {
                                 )
                             }
                         }
+
                     }
                 }
             }

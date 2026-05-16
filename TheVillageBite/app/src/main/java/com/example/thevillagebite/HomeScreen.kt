@@ -95,7 +95,10 @@ fun HomeScreenUI() {
 
             composable("category") { CategoryScreen(navController) }
 
-            composable("product") { ProductScreen() }
+            composable("product") { ProductScreen(navController) }
+
+            composable("productDetails") { ProductDetailsScreen(navController) }
+
 
             composable("profile") {
                 ProfileScreen(
