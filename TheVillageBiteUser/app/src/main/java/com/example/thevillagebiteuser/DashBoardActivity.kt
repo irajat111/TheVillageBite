@@ -71,20 +71,6 @@ fun DashBoardScreen() {
             )
         },
 
-        // ── FAB ──────────────────────────────────────────
-//        floatingActionButton = {
-//            FloatingActionButton(
-//                onClick = { },
-////                containerColor = Color(0xFF6650A4),
-//                containerColor = colorResource(R.color.primaryGreen),
-//                contentColor = Color.White
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Filled.Add,
-//                    contentDescription = "Add"
-//                )
-//            }
-//        },
 
         // ── BOTTOM BAR ───────────────────────────────────
         bottomBar = {
@@ -96,7 +82,14 @@ fun DashBoardScreen() {
                 NavigationBarItem(
                     selected = selectedId == 0,
                     onClick = { selectedId = 0
-                        navController.navigate("category")},  // ✅ = fixed
+                        navController.navigate("category"){
+                            popUpTo(navController.graph.startDestinationId){
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+
+                        }},  // ✅ = fixed
                     icon = {
                         Icon(
                             imageVector = Icons.Filled.Menu,
@@ -117,7 +110,16 @@ fun DashBoardScreen() {
                 NavigationBarItem(
                     selected = selectedId == 1,
                     onClick = { selectedId = 1
-                        navController.navigate("cart")},  // ✅ = fixed
+                        navController.navigate("cart"){
+                            popUpTo(navController.graph.startDestinationId){
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+
+                        }
+
+                    },
                     icon = {
                         Icon(
                             imageVector = Icons.Filled.ShoppingCart,
@@ -138,7 +140,14 @@ fun DashBoardScreen() {
                 NavigationBarItem(
                     selected = selectedId == 2,
                     onClick = { selectedId = 2
-                        navController.navigate("profile")},  // ✅ = fixed
+                        navController.navigate("profile"){
+                            popUpTo(navController.graph.startDestinationId){
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+
+                        }},  // ✅ = fixed
                     icon = {
                         Icon(
                             imageVector = Icons.Filled.Person,

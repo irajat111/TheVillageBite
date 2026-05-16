@@ -14,64 +14,64 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AppNavigation()
+          //  AppNavigation()
         }
     }
 }
 
 
 
-@Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
-
-    NavHost(
-        navController = navController,
-        startDestination = "splash"
-    ) {
-        composable("splash") {
-            SplashScreenuser(
-                onFinish = {
-                    navController.navigate("SignUp") {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                },
-
-                navController
-            )
-        }
-
-        // ✅ ADD SignUpScreen
-        composable("signup") {
-            SignUpScreen(navController = navController)
-        }
-
-        // ✅ ADD LoginScreen
-        composable("login") {
-            LoginScreen(navController = navController,
-                onFinish = {
-                    navController.navigate("splash") {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                },)
-        }
-
-        // ADD HomeScreen
-//        composable("Home") {
-//            HomeScreen(navController = navController)
+//@Composable
+//fun AppNavigation() {
+//    val navController = rememberNavController()
+//
+//    NavHost(
+//        navController = navController,
+//        startDestination = "splash"
+//    ) {
+//        composable("splash") {
+//            SplashScreenuser(
+//                onFinish = {
+//                    navController.navigate("SignUp") {
+//                        popUpTo("splash") { inclusive = true }
+//                    }
+//                },
+//
+//                navController
+//            )
 //        }
 //
-//        composable("cart") {
-//            CartScreen(navController = navController)
+//        // ✅ ADD SignUpScreen
+//        composable("signup") {
+//            SignUpScreen(navController = navController)
 //        }
 //
-//        composable("Profile") {
-//            ProfileScreen(navController = navController)
+//        // ✅ ADD LoginScreen
+//        composable("login") {
+//            LoginScreen(navController = navController,
+//                onFinish = {
+//                    navController.navigate("splash") {
+//                        popUpTo("splash") { inclusive = true }
+//                    }
+//                },)
 //        }
 //
-//        composable() {
+//        // ADD HomeScreen
+////        composable("Home") {
+////            HomeScreen(navController = navController)
+////        }
+////
+////        composable("cart") {
+////            CartScreen(navController = navController)
+////        }
+////
+////        composable("Profile") {
+////            ProfileScreen(navController = navController)
+////        }
+////
+////        composable() {
+////
+////        }
 //
-//        }
-
-    }
-}
+//    }
+//}

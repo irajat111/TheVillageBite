@@ -1,5 +1,7 @@
 package com.example.thevillagebiteuser
 
+import android.app.Activity
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -477,10 +479,8 @@ fun ProfileScreen(navController: NavHostController) {
         OutlinedButton(
             onClick = {
                 auth.signOut()
-                navController.navigate("login") {
-                    // Back stack clear karo — login ke baad back press pe app band ho
-                    popUpTo(0) { inclusive = true }
-                }
+                context.startActivity(Intent(context, LogInActivity::class.java))
+                (context as Activity).finish()
             },
             modifier = Modifier
                 .fillMaxWidth()

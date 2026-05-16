@@ -1,6 +1,11 @@
 package com.example.thevillagebiteuser
 
+import android.app.Activity
 import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,22 +34,29 @@ import com.google.firebase.auth.auth
 import kotlinx.coroutines.delay
 
 
-
+class SplashActivity: ComponentActivity(){
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            SplashScreenuser()
+        }
+    }
+}
 
 @Composable
-fun SplashScreenuser(onFinish: () -> Unit,navController: NavController ) {
+fun SplashScreenuser() {
     val auth  = Firebase.auth
 
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         delay(3000)
-        onFinish()
         if(auth.currentUser?.uid!=null){
             context.startActivity(Intent(context, DashBoardActivity::class.java))
-            onFinish()
+            (context as Activity).finish()
         }else{
-           navController.navigate("signup")
-            onFinish()
+            context.startActivity(Intent(context, LogInActivity::class.java))
+            (context as Activity).finish()
         }
    }
 

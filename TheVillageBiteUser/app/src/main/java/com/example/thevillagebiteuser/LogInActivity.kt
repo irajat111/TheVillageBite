@@ -49,13 +49,13 @@ class LogInActivity : ComponentActivity(){
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-//            LoginScreen()
+            LoginScreen()
         }
     }
 }
 
 @Composable
-fun LoginScreen(navController: NavHostController, onFinish: () -> Unit) {
+fun LoginScreen() {
 
     val auth  = Firebase.auth
     val context = LocalContext.current
@@ -284,23 +284,6 @@ fun LoginScreen(navController: NavHostController, onFinish: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             // ── Login Button ──────────────────────────────────
-//            Button(
-//                onClick = onLoginClick,
-//                modifier = Modifier
-//                    .width(152.dp)
-//                    .height(57.dp),
-//                shape = cardShape,
-//                colors = ButtonDefaults.buttonColors(
-////                    containerColor = greenColor
-//                )
-//            ) {
-//                Text(
-//                    text = "Login",
-//                    fontSize = 20.sp,
-//                    color = Color.White,
-//                    fontFamily =  FontObj.cause,
-//                )
-//            }
             ElevatedButton(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
                 shape = RoundedCornerShape(7.dp),
@@ -322,7 +305,6 @@ fun LoginScreen(navController: NavHostController, onFinish: () -> Unit) {
                                      // ✅ NavController navigate karega
                                     context.startActivity(Intent(context, DashBoardActivity::class.java))
                                     (context as Activity).finish()
-                                    onFinish()
 
                                 } else {
                                     Toast.makeText(context, it.exception?.message, Toast.LENGTH_SHORT).show()
@@ -350,7 +332,8 @@ fun LoginScreen(navController: NavHostController, onFinish: () -> Unit) {
 
             // ── Don't Have Account ────────────────────────────
             TextButton(onClick = {
-                navController.navigate("signup")
+              context.startActivity(Intent(context, SignUpActivity::class.java))
+                (context as Activity).finish()
             }) {
                 Text(
                     text = "Don't Have Account?",

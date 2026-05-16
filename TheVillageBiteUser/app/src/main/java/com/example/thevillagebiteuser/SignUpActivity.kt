@@ -1,5 +1,7 @@
 package com.example.thevillagebiteuser
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -39,13 +41,13 @@ class SignUpActivity : ComponentActivity(){
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-
+            SignUpScreen()
         }
     }
 }
 
 @Composable
-fun SignUpScreen(navController: androidx.navigation.NavController) {
+fun SignUpScreen() {
 
     val context = LocalContext.current
     val auth = Firebase.auth
@@ -410,23 +412,6 @@ fun SignUpScreen(navController: androidx.navigation.NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Create Account Button (Gradient) ──────────────
-//            Button(
-//                onClick = { navController.navigate("login")  },
-//                modifier = Modifier.fillMaxWidth(),
-//                shape = cardShape,
-//                colors = ButtonDefaults.buttonColors(
-//                    containerColor = greenColor
-//                )
-//            ) {
-//                Text(
-//                    text = "Create Account",
-//                    fontSize = 18.sp,
-//                    color = Color.White,
-//                    fontFamily = FontFamily.Serif,
-//                    textAlign = TextAlign.Center
-//                )
-
 
             ElevatedButton(
                 modifier = Modifier
@@ -508,7 +493,9 @@ fun SignUpScreen(navController: androidx.navigation.NavController) {
                 fontSize = 13.sp,
                 modifier = Modifier
                     .clickable {
-                        navController.navigate("login")  // ✅ login route pe navigate
+                        // AGAR DIFFIRENT ACTIVITY HAI THO  Navigate krne ke liye Ye chijje use hongi
+                        context.startActivity(Intent(context, LogInActivity::class.java ))
+                        (context as Activity).finish()
                     }
                     .padding(4.dp)
             )
