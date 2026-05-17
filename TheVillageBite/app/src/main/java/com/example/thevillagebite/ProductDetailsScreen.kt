@@ -6,5 +6,7 @@ import androidx.navigation.NavHostController
 
 @Composable
 fun ProductDetailsScreen(navController: NavHostController) {
+
     Text("Inside Product Card Item Dara")
+
 }
