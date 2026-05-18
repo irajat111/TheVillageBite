@@ -49,7 +49,7 @@ data class FoodItem1(
     val price: Int? = 0
 )
 @Composable  // ✅ ADD THIS — it was missing!
-@Preview(showSystemUi = true)
+//@Preview(showSystemUi = true)
 fun OrdersScreen() {
 
     val db = Firebase.firestore

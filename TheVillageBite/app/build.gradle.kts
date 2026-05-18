@@ -52,7 +52,12 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.firebase.firestore)
-    implementation(libs.androidx.compose.material3.lint)
+
+//    implementation(libs.androidx.compose.material3.lint)
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.navigation.runtime.ktx)
+    implementation(libs.androidx.material3)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

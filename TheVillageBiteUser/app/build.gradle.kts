@@ -52,6 +52,9 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material3.lint)
+    implementation(libs.volley)
+    implementation(libs.androidx.ui)
+    implementation(libs.firebase.firestore)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -61,4 +64,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.ktor:ktor-client-android:3.0.0")
+
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
 }

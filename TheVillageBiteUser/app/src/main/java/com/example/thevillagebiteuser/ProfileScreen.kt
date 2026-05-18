@@ -62,7 +62,7 @@ fun ProfileScreen(navController: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFF8F2))
+            .background(colorResource(R.color.white))
             .verticalScroll(rememberScrollState())  // scroll support
             .padding(horizontal = 24.dp)
             .padding(top = 60.dp, bottom = 32.dp),
@@ -89,13 +89,31 @@ fun ProfileScreen(navController: NavHostController) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // ── Email Display ─────────────────────────────────
-        Text(
-            text = userEmail,
-            fontSize = 16.sp,
-            color = Color.Gray
-        )
+//        Text(
+//            text = userEmail,
+//            fontSize = 16.sp,
+//            color = Color.Gray
+//        )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        // Email Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
+            onClick = {
+                // for animaition  adding onClick
+            },
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Email", fontSize = 13.sp, color = Color.Gray)
+                Spacer(Modifier.height(4.dp))
+                Text(userEmail, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(20.dp))
 
         // ════════════════════════════════════════════════
         //   SECTION 1 — Update Display Name
@@ -195,7 +213,7 @@ fun ProfileScreen(navController: NavHostController) {
 
 
 
-        Spacer(modifier = Modifier.height(20.dp))
+//        Spacer(modifier = Modifier.height(20.dp))
 
         // ════════════════════════════════════════════════
         //   SECTION 2 — Change Password
@@ -204,7 +222,10 @@ fun ProfileScreen(navController: NavHostController) {
             modifier = Modifier.fillMaxWidth(),
             shape = cardShape,
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(2.dp)
+            elevation = CardDefaults.cardElevation(2.dp),
+            onClick = {
+                // for animaition  adding onClick
+            },
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
 
@@ -465,7 +486,7 @@ fun ProfileScreen(navController: NavHostController) {
                         .height(50.dp),
                     shape = RoundedCornerShape(7.dp),
                     colors = ButtonDefaults.elevatedButtonColors(
-                        containerColor = greenColor
+                        containerColor = colorResource(R.color.cardGreen)
                     )
                 ) {
                     Text("Change Password", color = Color.White, fontSize = 16.sp)
@@ -488,7 +509,7 @@ fun ProfileScreen(navController: NavHostController) {
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = Color.Red,
-                containerColor = colorResource(R.color.cardGreen)
+                containerColor = colorResource(R.color.primaryGreen)
             )
         ) {
             Icon(

@@ -81,7 +81,6 @@ data class ProductClass(
         var id: String? = "",
         val foodname: String? = "",
         val foodprice: Double? = 0.0,
-//        val foodimg: String? = "",
         val foodDescriprion: String? = "",
         val productImage: String? = null
     )
@@ -140,6 +139,7 @@ fun ProductScreen(navController: NavHostController) {
 
         Box(Modifier.fillMaxSize()){
 
+            // UI show
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxWidth().padding(10.dp),
@@ -150,7 +150,10 @@ fun ProductScreen(navController: NavHostController) {
                     Card(
                         modifier = Modifier.fillMaxWidth().clickable(){
                             // yhan pr InsideProductItem Screen show krwaani hai
-                            navController.navigate("productDetails")
+                            // ✅ CHANGE — productId pass karke navigate karo
+                            val productId = ProductList[index].id ?: ""
+                            navController.navigate("productDetails/$productId")
+//                            navController.navigate("productDetails")
                         },
                         colors = CardDefaults.cardColors(   // card color = white
                             containerColor = colorResource(R.color.whitefaint)
@@ -322,7 +325,10 @@ fun OpenDialogboxProduct(showDialog: Boolean, dissmis: () -> Unit, selectedId: S
                         elevation = CardDefaults.cardElevation(4.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = colorResource(R.color.cardGreen)
-                        )
+                        ),
+                        onClick = {
+                            // for animaition  adding onClick
+                        },
                     ) {
                         Text(
                             "Add Food",

@@ -52,7 +52,16 @@ fun AppNavigation() {
         }
 
         composable("home") {
-            HomeScreenUI()
+            HomeScreenUI(parentNavController = navController)
         }
+
+        composable("productDetails/{productId}") { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+            ProductDetailsScreen(
+                navController = navController,
+                productId = productId
+            )
+        }
+
     }
 }

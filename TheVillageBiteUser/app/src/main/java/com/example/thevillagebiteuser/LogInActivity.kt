@@ -68,7 +68,7 @@ fun LoginScreen() {
     val greenColor = Color(0xFF4CAF50)
     val textGreen = Color(0xFF2E7D32)
 //    val grayText = Color(0xFF888888)
-    val cardShape = RoundedCornerShape(14.dp)
+
 
     // Custom fonts — make sure these are in res/font/
 
@@ -130,6 +130,7 @@ fun LoginScreen() {
             Spacer(modifier = Modifier.height(16.dp))
 
             // ── Email Field ───────────────────────────────────
+            val cardShape = RoundedCornerShape(14.dp)
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },

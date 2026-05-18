@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -22,7 +23,7 @@ import androidx.navigation.compose.rememberNavController
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreenUI() {
+fun HomeScreenUI(parentNavController: NavHostController) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -44,8 +45,9 @@ fun HomeScreenUI() {
             )
         },
         bottomBar = {
-            BottomAppBar(containerColor = colorResource(R.color.primaryGreen)) {
-                NavigationBar(containerColor = colorResource(R.color.primaryGreen)) {
+            BottomAppBar(containerColor = colorResource(R.color.white)) {
+                NavigationBar(containerColor = colorResource(R.color.white)) {
+
                     NavigationBarItem(
                         selected = currentRoute == "orders",
                         onClick = {
@@ -56,8 +58,17 @@ fun HomeScreenUI() {
                             }
                         },
                         icon = { Icon(Icons.Filled.ShoppingCart, contentDescription = "Orders") },
-                        label = { Text("Orders") }
+                        label = { Text("Orders") },
+
+                                // ✅ SIRF YEH ADD KAR
+                        colors = NavigationBarItemDefaults.colors
+                            (selectedIconColor = colorResource(R.color.primaryGreen),
+                        selectedTextColor = Color.Black,
+                        unselectedTextColor = Color.Black,
+                        indicatorColor = Color.White )
+
                     )
+
                     NavigationBarItem(
                         selected = currentRoute == "category",
                         onClick = {
@@ -68,8 +79,16 @@ fun HomeScreenUI() {
                             }
                         },
                         icon = { Icon(Icons.Filled.List, contentDescription = "Category") },
-                        label = { Text("Category") }
+                        label = { Text("Category") },
+
+                        colors = NavigationBarItemDefaults.colors
+                            (selectedIconColor = colorResource(R.color.primaryGreen),
+                            selectedTextColor = Color.Black,
+                            unselectedTextColor = Color.Black,
+                            indicatorColor = Color.White )
+
                     )
+
                     NavigationBarItem(
                         selected = currentRoute == "profile",
                         onClick = {
@@ -79,9 +98,18 @@ fun HomeScreenUI() {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(Icons.Filled.AccountCircle, contentDescription = "Profile") },
-                        label = { Text("Profile") }
+                        icon = { Icon(Icons.Filled.AccountCircle,
+                            contentDescription = "Profile") },
+                        label = { Text("Profile") },
+
+                        colors = NavigationBarItemDefaults.colors
+                            (selectedIconColor = colorResource(R.color.primaryGreen),
+                            selectedTextColor = Color.Black,
+                            unselectedTextColor = Color.Black,
+                            indicatorColor = Color.White )
+
                     )
+
                 }
             }
         }
@@ -97,7 +125,10 @@ fun HomeScreenUI() {
 
             composable("product") { ProductScreen(navController) }
 
-            composable("productDetails") { ProductDetailsScreen(navController) }
+            composable("productDetails/{productId}") { backStackEntry ->
+                val productId = backStackEntry.arguments?.getString("productId") ?: ""
+                ProductDetailsScreen(navController = navController, productId = productId)
+            }
 
 
             composable("profile") {
