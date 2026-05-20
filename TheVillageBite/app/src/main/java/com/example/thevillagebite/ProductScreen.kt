@@ -26,11 +26,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -54,10 +57,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
@@ -93,6 +98,10 @@ fun ProductScreen(navController: NavHostController) {
     val db = Firebase.firestore
     var showDialog by remember { mutableStateOf(false) }
     var selectedId by remember { mutableStateOf("") }
+
+    // var for delete dialog box
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleteId by remember { mutableStateOf("") }
 
     // ✅ CHANGE 1 — ProductClass use kiya, pehle CategoryClass tha
     var ProductList = remember { mutableStateListOf<ProductClass>() }
@@ -156,8 +165,9 @@ fun ProductScreen(navController: NavHostController) {
 //                            navController.navigate("productDetails")
                         },
                         colors = CardDefaults.cardColors(   // card color = white
-                            containerColor = colorResource(R.color.whitefaint)
-                        )
+                            containerColor = colorResource(R.color.white)
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
                     ) {
 
                         println("Checck image form Firebase: ${ ProductList[index].productImage}")
@@ -194,17 +204,30 @@ fun ProductScreen(navController: NavHostController) {
                                 Spacer(Modifier.height(10.dp))
 
                                 Spacer(Modifier.weight(1f))
-                                IconButton(
-                                    onClick = {
-                                        deleteProduct(ProductList[index].id)
-                                    }
-                                ) {
+
+//                                IconButton(
+//                                    onClick = {
+//                                        deleteProduct(ProductList[index].id)
+//                                    }
+//                                ) {
+//                                    Icon(
+//                                        Icons.Default.Delete,
+//                                        contentDescription = "DELETE",
+//                                        tint = Color.Red
+//                                    )
+//                                }
+
+                                IconButton(onClick = {
+                                    deleteId = ProductList[index].id ?: ""
+                                    showDeleteDialog = true
+                                }) {
                                     Icon(
                                         Icons.Default.Delete,
                                         contentDescription = "DELETE",
                                         tint = Color.Red
                                     )
                                 }
+
                             }
                         }
 
@@ -237,6 +260,167 @@ fun ProductScreen(navController: NavHostController) {
             dissmis = { showDialog  = false },
             selectedId = selectedId
         )
+    }
+
+
+    // Dialogbox for Delete Item
+    if (showDeleteDialog) {
+        Dialog(onDismissRequest = { showDeleteDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+
+                    // ✅ Warning + Red Cross Icon
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "",
+                            tint = Color.Red,
+                            modifier = Modifier.size(28.dp)
+                        )
+
+                        // 3. Spacing control kar sakte ho
+//                        Spacer(Modifier.width(6.dp)) // 👈 Icon aur Text ke beech thodi jagah
+
+                        // 4. Title alag se add kar sakte ho
+                        Text(
+                            text = "Warning!",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Red
+                        )
+
+                        IconButton(onClick = { showDeleteDialog = false }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.Red  // ✅ Red cross
+                            )
+                        }
+                    }
+
+                    // ✅ Divider line
+                    Divider(color = Color.LightGray, thickness = 0.5.dp)
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Card(
+                        modifier = Modifier
+//                            .weight(1f)
+                            .clickable {  },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = colorResource(R.color.white)
+                        ),
+                        elevation = CardDefaults.cardElevation(2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth().height(80.dp)
+                                .padding(3.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            // ✅ Message
+                            Text(
+                                text = "Are you sure you want to delete this item? This action cannot be undone!",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                lineHeight = 22.sp
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+
+                    // ✅ 2 Cards — Cancel aur Yes Delete
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Cancel Card
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { showDeleteDialog = false },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFF5F5F5)
+                            ),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth().height(50.dp)
+                                    .padding(3.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+//                                Icon(
+//                                    imageVector = Icons.Default.Close,
+//                                    contentDescription = "Cancel",
+//                                    tint = Color.Gray,
+//                                    modifier = Modifier.size(32.dp)
+//                                )
+//                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Cancel",
+//                                    text = "",
+                                    fontSize = 13.sp,
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        // Yes Delete Card
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    deleteProduct(deleteId)  // ✅ Delete action
+                                    showDeleteDialog = false
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFFFEBEE)
+                            ),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth().height(50.dp)
+                                    .padding(3.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+//                                Icon(
+//                                    imageVector = Icons.Default.Delete,
+//                                    contentDescription = "Delete",
+//                                    tint = Color.Red,
+//                                    modifier = Modifier.size(22.dp)
+//                                )
+//                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Yes, Delete",
+//                                    text = "",
+                                    fontSize = 13.sp,
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

@@ -133,7 +133,6 @@ fun HomeScreenUI(parentNavController: NavHostController) {
 
             composable("profile") {
                 ProfileScreen(
-                    modifier = Modifier.padding(padding),
                     onLogout = {
                         navController.navigate("login") {
                             popUpTo(0) { inclusive = true }
@@ -141,6 +140,8 @@ fun HomeScreenUI(parentNavController: NavHostController) {
                     }
                 )
             }
+
+
         }
     }
 }

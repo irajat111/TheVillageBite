@@ -13,12 +13,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,8 +33,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
@@ -70,6 +75,11 @@ fun CategoryScreen(navController: NavController) {
     var showDialog by remember { mutableStateOf(false) }
     var selectId by remember { mutableStateOf("") }
     var categoryList = remember { mutableStateListOf<CategoryClass>() }
+
+
+    // var created for Deleted icon popUp
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleteId by remember { mutableStateOf("") }
 
     // Firestore se data fetch
     LaunchedEffect(Unit) {
@@ -114,8 +124,9 @@ fun CategoryScreen(navController: NavController) {
                         navController.navigate("product")
                     },
                     colors = CardDefaults.cardColors(
-                        containerColor = colorResource(R.color.whitefaint)
-                    )
+                        containerColor = colorResource(R.color.white)
+                    ),
+                    elevation = CardDefaults.cardElevation(8.dp)
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
@@ -147,13 +158,26 @@ fun CategoryScreen(navController: NavController) {
                                 textAlign = TextAlign.Center
                             )
                             Spacer(Modifier.weight(1f))
-                            IconButton(onClick = { deleteItem(categoryList[index].id) }) {
+
+//                            IconButton(onClick = { deleteItem(categoryList[index].id) }) {
+//                                Icon(
+//                                    Icons.Default.Delete,
+//                                    contentDescription = "DELETE",
+//                                    tint = Color.Red
+//                                )
+//                            }
+
+                            IconButton(onClick = {
+                                deleteId = categoryList[index].id ?: ""
+                                showDeleteDialog = true
+                            }) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = "DELETE",
                                     tint = Color.Red
                                 )
                             }
+
                         }
 
                     }
@@ -177,6 +201,167 @@ fun CategoryScreen(navController: NavController) {
             selectId = selectId
         )
     }
+
+    // Dialogbox for Delete Item
+    if (showDeleteDialog) {
+        Dialog(onDismissRequest = { showDeleteDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+
+                    // ✅ Warning + Red Cross Icon
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "",
+                            tint = Color.Red,
+                            modifier = Modifier.size(28.dp)
+                        )
+
+                        // 3. Spacing control kar sakte ho
+//                        Spacer(Modifier.width(6.dp)) // 👈 Icon aur Text ke beech thodi jagah
+
+                        // 4. Title alag se add kar sakte ho
+                        Text(
+                            text = "Warning!",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Red
+                        )
+
+                        IconButton(onClick = { showDeleteDialog = false }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.Red  // ✅ Red cross
+                            )
+                        }
+                    }
+
+                    // ✅ Divider line
+                    Divider(color = Color.LightGray, thickness = 0.5.dp)
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Card(
+                        modifier = Modifier
+//                            .weight(1f)
+                            .clickable {  },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = colorResource(R.color.white)
+                        ),
+                        elevation = CardDefaults.cardElevation(2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth().height(80.dp)
+                                .padding(3.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            // ✅ Message
+                            Text(
+                                text = "Are you sure you want to delete this item? This action cannot be undone!",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                lineHeight = 22.sp
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+
+                    // ✅ 2 Cards — Cancel aur Yes Delete
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Cancel Card
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { showDeleteDialog = false },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFF5F5F5)
+                            ),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth().height(50.dp)
+                                    .padding(3.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+//                                Icon(
+//                                    imageVector = Icons.Default.Close,
+//                                    contentDescription = "Cancel",
+//                                    tint = Color.Gray,
+//                                    modifier = Modifier.size(32.dp)
+//                                )
+//                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Cancel",
+//                                    text = "",
+                                    fontSize = 13.sp,
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        // Yes Delete Card
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    deleteItem(deleteId)  // ✅ Delete action
+                                    showDeleteDialog = false
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFFFEBEE)
+                            ),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth().height(50.dp)
+                                    .padding(3.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+//                                Icon(
+//                                    imageVector = Icons.Default.Delete,
+//                                    contentDescription = "Delete",
+//                                    tint = Color.Red,
+//                                    modifier = Modifier.size(22.dp)
+//                                )
+//                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Yes, Delete",
+//                                    text = "",
+                                    fontSize = 13.sp,
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 // ===================== ADD CATEGORY DIALOG =====================
