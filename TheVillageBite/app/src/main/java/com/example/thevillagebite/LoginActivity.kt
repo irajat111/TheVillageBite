@@ -99,7 +99,7 @@ fun LoginScreenUI(onLoginSuccess: () -> Unit) {
             text       = "Login to your Admin Account",
             fontSize   = 14.sp,
             fontWeight = FontWeight.Medium,
-            color      = Color.Gray
+            color      = Color.Black
         )
 
         Spacer(Modifier.height(32.dp))

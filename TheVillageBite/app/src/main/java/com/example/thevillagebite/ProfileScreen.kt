@@ -4,10 +4,8 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,7 +20,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontStyle
@@ -31,17 +31,92 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import coil3.compose.AsyncImage
 import com.google.firebase.Firebase
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.lang.Exception
+
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit = {}
 ) {
     val context     = LocalContext.current
-    val auth        = Firebase.auth
+    val auth = Firebase.auth
     val currentUser = auth.currentUser
     val adminEmail  = currentUser?.email ?: "Not Logged In"
+
+
+    // supabas ojbect
+    val supabase = createSupabaseClient(
+        supabaseUrl = SupabaseObject.supaBaseUrl,
+        supabaseKey = SupabaseObject.supaBasekey
+    ) {
+        install(Storage)
+    }
+    val db = Firebase.firestore
+    // profile image and variables for pick images
+    var isUploading by remember { mutableStateOf(false) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            imageUri = uri // ✅ Gallery se image turant dikhegi
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+
+                    val fileName = "${System.currentTimeMillis()}.jpg"
+                    val inputStream = context.contentResolver.openInputStream(imageUri!!)
+                    val bytes = inputStream?.readBytes()
+                    val bucket = supabase.storage.from("village_bite")
+                    bucket.upload(path = fileName, data = bytes!!)
+                   val imageUrl = bucket.publicUrl(fileName)
+                    println("Check Image Url: $imageUrl")
+                    val hashMap = mapOf<String, String>(
+                        "name" to "Admin",
+                        "email" to "admin@gmail.com",
+                        "adminProfileImage" to imageUrl
+                    )
+                    db.collection("Admin").document(auth.currentUser?.uid.toString()).set(hashMap)
+                        .addOnCompleteListener {
+                            if(it.isSuccessful){
+                                Toast.makeText(context,"Image Uploaded Successfully", Toast.LENGTH_SHORT).show()
+                            }else{
+                                Toast.makeText(context,it.exception?.message, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+
+                } catch (e: Exception) {
+                    println("Check Exception of Image: ${e.message}")
+                } finally {
+
+                }
+            }
+
+        }
+    }
+    var imageUrl by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        db.collection("Admin").document(auth.currentUser?.uid.toString()).get().addOnCompleteListener {
+            if(it.isSuccessful){
+                imageUrl = it.result.get("adminProfileImage").toString()
+            }
+        }
+    }
+
 
     // ── Password field states ──────────────────────────────
     var currentPassword    by remember { mutableStateOf("") }
@@ -62,6 +137,7 @@ fun ProfileScreen(
     val greenColor  = Color(0xFF4CAF50)
     val cardShape   = RoundedCornerShape(14.dp)
 
+
     Box(Modifier.fillMaxSize()
           .background(colorResource(R.color.white))) {
         Column(
@@ -80,19 +156,80 @@ fun ProfileScreen(
             ) {
 
                 // ── Avatar Circle ──────────────────────────────────
+//                Box(
+//                    modifier = Modifier
+//                        .size(90.dp)
+//                        .background(greenColor, CircleShape),
+//                    contentAlignment = Alignment.Center
+//                ) {
+//                    Text(
+//                        text = adminEmail.first().uppercaseChar().toString(),
+//                        fontSize = 36.sp,
+//                        color = Color.White,
+//                        fontWeight = FontWeight.Bold
+//                    )
+//                }
+
+
+                // ✅ PURANA hatao — NAYA lagao
                 Box(
                     modifier = Modifier
                         .size(90.dp)
-                        .background(greenColor, CircleShape),
+                        .clip(CircleShape)
+                        .background(greenColor, CircleShape)
+                        .clickable {
+                            imagePicker.launch("image/*")   // 👈 Click pe gallery open
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = adminEmail.first().uppercaseChar().toString(),
-                        fontSize = 36.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (imageUri!=null) {
+                        // ✅ Image hai toh dikhao
+                        AsyncImage(
+                            model = imageUri,
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        // ✅ Image nahi hai toh letter dikhao
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                        )
+                    }
+
+                    // ✅ Upload ho raha hai toh loader dikhao
+                    if (isUploading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
                 }
+
+                // ✅ Camera icon neeche dikhao
+                Text(
+                    text = "📷 Change Photo",
+                    fontSize = 12.sp,
+                    color = greenColor,
+                    modifier = Modifier.clickable {
+                        imagePicker.launch("image/*")
+                    }
+                )
+
 
                 Spacer(Modifier.height(8.dp))
 
@@ -115,7 +252,8 @@ fun ProfileScreen(
                     },
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Email", fontSize = 13.sp, color = Color.Gray)
+                        Text("Email", fontSize = 13.sp, color = Color.Black,
+                            fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(4.dp))
                         Text(adminEmail, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     }
@@ -387,4 +525,8 @@ fun ProfileScreen(
             }
         }
     }
+}
+
+private fun Nothing?.launch(string: String) {
+    TODO("Not yet implemented")
 }

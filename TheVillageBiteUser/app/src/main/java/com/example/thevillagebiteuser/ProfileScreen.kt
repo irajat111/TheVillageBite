@@ -3,6 +3,7 @@ package com.example.thevillagebiteuser
 import android.app.Activity
 import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,7 +29,15 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.userProfileChangeRequest
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.storage.Storage
+
 
 @Composable
 fun ProfileScreen(navController: NavHostController) {
@@ -36,6 +45,27 @@ fun ProfileScreen(navController: NavHostController) {
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
+
+
+    // supabas ojbect
+    val supabase = createSupabaseClient(
+        supabaseUrl = SupabaseObject.supaBaseUrl,
+        supabaseKey = SupabaseObject.supaBasekey
+    ) {
+        install(Storage)
+    }
+
+    // profile image and variables for pick images
+    var avatarUrl by remember { mutableStateOf(currentUser?.photoUrl?.toString() ?: "") }
+    var isUploading by remember { mutableStateOf(false) }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            avatarUrl = uri.toString()
+        }
+    }
 
     // ── States ────────────────────────────────────────────
     val userEmail = currentUser?.email ?: "No Email Found"
@@ -70,21 +100,81 @@ fun ProfileScreen(navController: NavHostController) {
     ) {
 
         // ── Avatar Circle ─────────────────────────────────
+//        Box(
+//            modifier = Modifier
+//                .size(90.dp)
+//                .background(greenColor,CircleShape),
+////                .background(colorResource(R.color.cardGreen), CircleShape),
+//            contentAlignment = Alignment.Center
+//        ) {
+//            Text(
+//                // Email ka pehla letter capital mein dikhayenge
+//                text = userEmail.first().uppercaseChar().toString(),
+//                fontSize = 36.sp,
+//                color = Color.White,
+//                fontWeight = FontWeight.Bold
+//            )
+//        }
+
+
+        // ✅ NAYA - image bhi dikhega + click pe gallery khulegi
         Box(
             modifier = Modifier
                 .size(90.dp)
-                .background(greenColor,CircleShape),
-//                .background(colorResource(R.color.cardGreen), CircleShape),
+                .clip(CircleShape)
+                .background(greenColor, CircleShape)
+                .clickable {
+                    imagePicker.launch("image/*") // ✅ Click pe gallery
+                },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                // Email ka pehla letter capital mein dikhayenge
-                text = userEmail.first().uppercaseChar().toString(),
-                fontSize = 36.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
+            if (avatarUrl.isNotEmpty()) {
+                // ✅ Image hai toh dikhao
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                )
+            } else {
+                // ✅ Image nahi hai toh letter dikhao
+                Text(
+                    text = userEmail.first().uppercaseChar().toString(),
+                    fontSize = 36.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // ✅ Upload ho raha hai toh loader dikhao
+            if (isUploading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
         }
+
+            // ✅ Niche ye text bhi add karo
+        Text(
+            text = "📷 Change Photo",
+            fontSize = 12.sp,
+            color = greenColor,
+            modifier = Modifier.clickable {
+                imagePicker.launch("image/*")
+            }
+        )
+
+
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -105,7 +195,7 @@ fun ProfileScreen(navController: NavHostController) {
             },
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Email", fontSize = 13.sp, color = Color.Gray)
+                Text("Email", fontSize = 13.sp, color = Color.Black,fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 Text(userEmail, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
@@ -232,7 +322,8 @@ fun ProfileScreen(navController: NavHostController) {
                 Text(
                     text = "Change Password",
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -522,3 +613,6 @@ fun ProfileScreen(navController: NavHostController) {
         }
     }
 }
+
+
+
