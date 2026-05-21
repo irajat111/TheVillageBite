@@ -6,9 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.thevillagebiteuser"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.thevillagebiteuser"
@@ -16,7 +14,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -39,6 +36,14 @@ android {
 }
 
 dependencies {
+
+    // ✅ Firebase BOM — SABSE PEHLE — version conflict fix
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+
+    // ✅ AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -47,14 +52,28 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-//    implementation(libs.firebase.common.ktx)
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.auth)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.compose.material3.lint)
     implementation(libs.volley)
-    implementation(libs.androidx.ui)
-    implementation(libs.firebase.firestore)
+
+    // ✅ Material Icons
+    implementation("androidx.compose.material:material-icons-extended")
+
+    // ✅ Coil Image Loading
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
+
+    // ✅ Supabase
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.0.0"))
+    implementation("io.github.jan-tennert.supabase:storage-kt")
+    implementation("io.ktor:ktor-client-android:3.0.0")
+
+    // ✅ Razorpay
+    implementation("com.razorpay:checkout:1.6.33")
+
+    // ✅ ViewModel Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+
+    // ✅ Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -62,14 +81,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-    // ✅ Ye 2 naye add kiye
-    implementation(platform("io.github.jan-tennert.supabase:bom:3.0.0"))
-    implementation("io.github.jan-tennert.supabase:storage-kt")
-
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
-    implementation("io.ktor:ktor-client-android:3.0.0")
-
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
 }

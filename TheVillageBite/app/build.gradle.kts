@@ -6,9 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.thevillagebite"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.thevillagebite"
@@ -53,7 +51,6 @@ dependencies {
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.firebase.firestore)
 
-//    implementation(libs.androidx.compose.material3.lint)
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.material3)
@@ -72,5 +69,4 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:storage-kt")
     implementation("io.ktor:ktor-client-android:3.0.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
-
 }

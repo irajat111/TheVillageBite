@@ -386,6 +386,10 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
     // ✅ CHANGE 1 — Naya variable add kiya loader ke liye
     var isImageUploading by remember { mutableStateOf(false) }
 
+    // States for validation
+    var imageError by remember { mutableStateOf("") }
+    var categoryNameError by remember { mutableStateOf("") }
+
     val imagePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
@@ -497,9 +501,11 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+
                 // Pick Image Card
                 Card(
                     onClick = {
+                        imageError = "" // clear error on click
                         if (checkPermisison(context)) {
                             imagePicker.launch("image/*")
                         } else {
@@ -513,7 +519,10 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
                     shape = RoundedCornerShape(12.dp),
                     elevation = CardDefaults.cardElevation(4.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = colorResource(R.color.cardGreen)
+                        containerColor = if (imageError.isNotEmpty())
+                            Color.Red.copy(alpha = 0.1f)  // red tint jab error ho
+                        else
+                            colorResource(R.color.cardGreen)
                     )
                 ) {
                     Box(
@@ -525,12 +534,27 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Pick Image",
                                 modifier = Modifier.size(50.dp),
-                                tint = Color.Black
+                                tint = if (imageError.isNotEmpty()) Color.Red else Color.Black
                             )
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = "Tap to Pick Image", color = Color.Gray)
+                            Text(
+                                text = if (imageUrl.isNotEmpty()) "✅ Image Selected" else "Tap to Pick Image",
+                                color = if (imageError.isNotEmpty()) Color.Red
+                                else if (imageUrl.isNotEmpty()) Color(0xFF4CAF50)
+                                else Color.Gray
+                            )
                         }
                     }
+                }
+
+                    // Image Error Text
+                if (imageError.isNotEmpty()) {
+                    Text(
+                        text = imageError,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -538,22 +562,59 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
                 // Category Name Field
                 OutlinedTextField(
                     value = categoryName,
-                    onValueChange = { categoryName = it },
+                    onValueChange = {
+                        categoryName = it
+                        categoryNameError = "" // clear error on type
+                    },
                     label = { Text("Enter Food Category") },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                    isError = categoryNameError.isNotEmpty(),
+                    supportingText = {
+                        if (categoryNameError.isNotEmpty()) {
+                            Text(categoryNameError, color = Color.Red, fontSize = 12.sp)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF4CAF50),
+                        unfocusedBorderColor = Color(0xFFDDDDDD),
+                        errorBorderColor = Color.Red
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 )
 
                 Spacer(Modifier.height(5.dp))
 
                 // ADD Button
                 ElevatedButton(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
                     onClick = {
-                        if (categoryName.isNotEmpty()) {
+                        // ✅ Validations
+                        var isValid = true
+
+                        if (imageUrl.isEmpty()) {
+                            imageError = "Please select an image"
+                            isValid = false
+                        }
+                        if (categoryName.isEmpty()) {
+                            categoryNameError = "Category name cannot be empty"
+                            isValid = false
+                        } else if (categoryName.length < 3) {
+                            categoryNameError = "Minimum 3 characters required"
+                            isValid = false
+                        } else if (categoryName.length > 30) {
+                            categoryNameError = "Maximum 30 characters allowed"
+                            isValid = false
+                        }
+
+                        if (isValid) {
                             val foodItemobj = CategoryClass(
                                 id = "",
                                 image = imageUrl,
-                                categoryName = categoryName
+                                categoryName = categoryName.trim()
                             )
                             db.collection("CategoryClass").add(foodItemobj)
                                 .addOnCompleteListener {
@@ -573,6 +634,7 @@ fun OpenDialogCategory(showDialog: Boolean, dismiss: () -> Unit, selectId: Strin
                 ) {
                     Text("ADD", color = Color.White)
                 }
+
             }
         }
     }

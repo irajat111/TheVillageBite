@@ -474,7 +474,7 @@ fun SignUpScreen() {
                 Icon(
                     imageVector = Icons.Outlined.Login,
                     contentDescription = "Logout",
-                    tint = Color.Red
+                    tint = Color.White
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(

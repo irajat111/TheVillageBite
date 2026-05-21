@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -19,7 +20,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 
-// ✅ Class hatao, sirf Composable rakho
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +31,7 @@ fun HomeScreenUI(parentNavController: NavHostController) {
     val topBarTitle = when (currentRoute) {
         "orders"   -> "Orders"
         "category" -> "Category"
+        "wallet"   -> "Revenue & Payments"   // ✅ Naya
         "profile"  -> "Profile"
         else       -> "The Village Bite"
     }
@@ -48,88 +49,95 @@ fun HomeScreenUI(parentNavController: NavHostController) {
             BottomAppBar(containerColor = colorResource(R.color.white)) {
                 NavigationBar(containerColor = colorResource(R.color.white)) {
 
+                    // ── Orders ────────────────────────────────
                     NavigationBarItem(
                         selected = currentRoute == "orders",
-                        onClick = {
+                        onClick  = {
                             navController.navigate("orders") {
                                 popUpTo("orders") { saveState = true }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState    = true
                             }
                         },
-                        icon = { Icon(Icons.Filled.ShoppingCart, contentDescription = "Orders") },
-                        label = { Text("Orders") },
-
-                                // ✅ SIRF YEH ADD KAR
-                        colors = NavigationBarItemDefaults.colors
-                            (selectedIconColor = colorResource(R.color.primaryGreen),
-                        selectedTextColor = Color.Black,
-                        unselectedTextColor = Color.Black,
-                        indicatorColor = Color.White )
-
+                        icon   = { Icon(Icons.Filled.ShoppingCart, contentDescription = "Orders") },
+                        label  = { Text("Orders") },
+                        colors = adminNavColors()
                     )
 
+                    // ── Category ──────────────────────────────
                     NavigationBarItem(
                         selected = currentRoute == "category",
-                        onClick = {
+                        onClick  = {
                             navController.navigate("category") {
                                 popUpTo("orders") { saveState = true }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState    = true
                             }
                         },
-                        icon = { Icon(Icons.Filled.List, contentDescription = "Category") },
-                        label = { Text("Category") },
-
-                        colors = NavigationBarItemDefaults.colors
-                            (selectedIconColor = colorResource(R.color.primaryGreen),
-                            selectedTextColor = Color.Black,
-                            unselectedTextColor = Color.Black,
-                            indicatorColor = Color.White )
-
+                        icon   = { Icon(Icons.Filled.List, contentDescription = "Category") },
+                        label  = { Text("Category") },
+                        colors = adminNavColors()
                     )
 
+                    // ── Wallet / Revenue ✅ Naya ──────────────
+                    NavigationBarItem(
+                        selected = currentRoute == "wallet",
+                        onClick  = {
+                            navController.navigate("wallet") {
+                                popUpTo("orders") { saveState = true }
+                                launchSingleTop = true
+                                restoreState    = true
+                            }
+                        },
+                        icon   = { Icon(Icons.Filled.AccountBalanceWallet, contentDescription = "Wallet") },
+                        label  = { Text("Revenue") },
+                        colors = adminNavColors()
+                    )
+
+                    // ── Profile ───────────────────────────────
                     NavigationBarItem(
                         selected = currentRoute == "profile",
-                        onClick = {
+                        onClick  = {
                             navController.navigate("profile") {
                                 popUpTo("orders") { saveState = true }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState    = true
                             }
                         },
-                        icon = { Icon(Icons.Filled.AccountCircle,
-                            contentDescription = "Profile") },
-                        label = { Text("Profile") },
-
-                        colors = NavigationBarItemDefaults.colors
-                            (selectedIconColor = colorResource(R.color.primaryGreen),
-                            selectedTextColor = Color.Black,
-                            unselectedTextColor = Color.Black,
-                            indicatorColor = Color.White )
-
+                        icon   = { Icon(Icons.Filled.AccountCircle, contentDescription = "Profile") },
+                        label  = { Text("Profile") },
+                        colors = adminNavColors()
                     )
-
                 }
             }
         }
     ) { padding ->
         NavHost(
-            navController = navController,
-            modifier = Modifier.padding(padding),
+            navController    = navController,
+            modifier         = Modifier.padding(padding),
             startDestination = "orders"
         ) {
-            composable("orders") { OrdersScreen() }
+            composable("orders") {
+                AdminOrdersScreen()
+            }
 
-            composable("category") { CategoryScreen(navController) }
+            composable("category") {
+                CategoryScreen(navController)
+            }
 
-            composable("product") { ProductScreen(navController) }
+            composable("product") {
+                ProductScreen(navController)
+            }
 
             composable("productDetails/{productId}") { backStackEntry ->
                 val productId = backStackEntry.arguments?.getString("productId") ?: ""
                 ProductDetailsScreen(navController = navController, productId = productId)
             }
 
+            // ✅ Wallet route — naya add kiya
+            composable("wallet") {
+                AdminWalletScreen()
+            }
 
             composable("profile") {
                 ProfileScreen(
@@ -140,8 +148,14 @@ fun HomeScreenUI(parentNavController: NavHostController) {
                     }
                 )
             }
-
-
         }
     }
 }
+
+@Composable
+fun adminNavColors() = NavigationBarItemDefaults.colors(
+    selectedIconColor   = colorResource(R.color.primaryGreen),
+    selectedTextColor   = Color.Black,
+    unselectedTextColor = Color.Black,
+    indicatorColor      = Color.White
+)

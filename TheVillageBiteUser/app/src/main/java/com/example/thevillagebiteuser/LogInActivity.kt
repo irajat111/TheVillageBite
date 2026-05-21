@@ -37,8 +37,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lint.kotlin.metadata.Visibility
-import androidx.navigation.NavHostController
+//import androidx.lint.kotlin.metadata.Visibility
+//import androidx.navigation.NavHostController
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 
@@ -323,7 +323,7 @@ fun LoginScreen() {
                 Icon(
                     imageVector = Icons.Outlined.Login,
                     contentDescription = "Logout",
-                    tint = Color.Red
+                    tint = Color.White
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("login", fontSize = 18.sp ,color = Color.White)

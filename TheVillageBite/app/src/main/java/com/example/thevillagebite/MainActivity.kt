@@ -62,6 +62,5 @@ fun AppNavigation() {
                 productId = productId
             )
         }
-
     }
 }

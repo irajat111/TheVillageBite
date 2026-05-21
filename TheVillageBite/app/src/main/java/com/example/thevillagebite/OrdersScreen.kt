@@ -1,294 +1,415 @@
 package com.example.thevillagebite
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 
-class OrdersActivity : ComponentActivity() {
+// ✅ OrderModel — Firestore se data map hoga
+data class OrderModel(
+    val orderId: String? = null,
+    val userId: String? = null,
+    val userName: String? = null,
+    val userPhone: String? = null,
+    val userAddress: String? = null,
+    val items: List<Map<String, Any>> = emptyList(),
+    val totalPrice: Double? = 0.0,
+    val status: String? = "Pending",
+    val timestamp: Long? = null
+)
+
+class AdminOrdersActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            OrdersScreen()
+            AdminOrdersScreen()
         }
-    }
-}
-
-val foodlist = mutableStateListOf<FoodItem1>()
-
-data class FoodItem1(
-    var id: String? = "",
-    val category: String? = "",
-    val food: String? = "",
-    val price: Int? = 0
-)
-@Composable  // ✅ ADD THIS — it was missing!
-//@Preview(showSystemUi = true)
-fun OrdersScreen() {
-
-    val db = Firebase.firestore
-
-    var showDialog by remember { mutableStateOf(false) }
-    var selectedId by remember { mutableStateOf("") }
-
-    // fetch data from firebase firestore
-    LaunchedEffect(Unit) {
-        db.collection("FoodItem1").get()
-            .addOnSuccessListener { res ->
-                foodlist.clear()
-                for (doc in res) {
-                    val foodobj = doc.toObject(FoodItem1::class.java)
-                        .copy(id = doc.id)
-                    foodlist.add(foodobj)
-                }
-            }
-    }
-
-    // ✅ ONE Box contains everything
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-
-        // ✅ Step 1 — LazyColumn INSIDE Box
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(7.dp)
-        ) {
-            items(foodlist) { item ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(text = "Category : ${item.category}")
-                            Spacer(modifier = Modifier.height(5.dp))
-                            Text(text = "Food : ${item.food}")
-                            Spacer(modifier = Modifier.height(5.dp))
-                            Text(text = "Price : ${item.price}")
-                        }
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        Row(
-                            modifier = Modifier.padding(15.dp)
-                        ) {
-
-                            IconButton(
-                                onClick = {
-
-                                },
-                                modifier = Modifier.size(35.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = "Edit",
-                                    tint = Color.Red
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.padding(5.dp))
-
-                            IconButton(
-                                // Deleted Item in List or Firebase firestore
-                                onClick = {
-                                    deleteItem(item.id)
-                                },
-                                modifier = Modifier.size(35.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = Color.Red
-                                )
-                            }
-
-                        }
-                    }
-                }
-            }
-        }
-
-        // ✅ Step 2 — FAB INSIDE Box (floats on top)
-        FloatingActionButton(
-            onClick = { showDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = colorResource(R.color.teal_200)
-        ) {
-            Icon(
-                Icons.Default.Add,
-                contentDescription = "",
-                tint = Color.White
-            )
-        }
-    }
-
-    // ✅ Step 3 — Dialog OUTSIDE Box
-    if (showDialog) {
-        openDialogboxOrders(
-            showDialog = showDialog,
-            dissmis = { showDialog = false },
-            selectedId = selectedId
-        )
     }
 }
 
 @Composable
-fun openDialogboxOrders(showDialog: Boolean, dissmis: () -> Unit, selectedId: String) {
+fun AdminOrdersScreen() {
 
-    val context = LocalContext.current
-    var category by remember { mutableStateOf("") }
-    var food by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
+    val db = Firebase.firestore
+    val greenColor = Color(0xFF4CAF50)
 
+    var orders by remember { mutableStateOf<List<OrderModel>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-        Dialog(
-        onDismissRequest = {
-            dissmis()  // ✅ closes when user taps outside
-        },
-        content = {
-            Box(
-                modifier = Modifier.fillMaxWidth()
-                    .background(color = colorResource(R.color.white),
-                shape = RoundedCornerShape(16.dp)   // rounded corner shap
-                    ).padding(16.dp)
-            )
-            {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(10.dp)
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = colorResource(R.color.cardGreen)
-                        )
-                    ) {
+    // ✅ Admin ke liye SARE orders fetch karo (koi userId filter nahi)
+    LaunchedEffect(Unit) {
+        db.collection("order")
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    orders = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(OrderModel::class.java)
+                            ?.copy(orderId = doc.id)
+                    }.sortedByDescending { it.timestamp }
+                    isLoading = false
+                }
+            }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+    ) {
+        // ✅ Header
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(6.dp),
+            colors = CardDefaults
+                .cardColors(containerColor = colorResource(R.color.cardGreen)),
+            onClick = { }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "All Customer Orders",
+                        color = Color.Black,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (orders.isNotEmpty()) {
                         Text(
-                            "Add Food",
-                            color = Color.Black,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(15.dp)
+                            text = "${orders.size} orders total",
+                            color = Color.Black.copy(alpha = 0.6f),
+                            fontSize = 12.sp
                         )
                     }
+                }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                Text(text = "🍟", fontSize = 28.sp)
+            }
+        }
 
-                        OutlinedTextField(
-                            value = category,
-                            onValueChange = {
-                                category = it
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                            label = { Text("Enter Food Category") }
+        Box(modifier = Modifier.fillMaxSize()) {
+            when {
+                isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = greenColor
+                    )
+                }
+
+                orders.isEmpty() -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "📦", fontSize = 50.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "No Orders Yet!",
+                            fontSize = 16.sp,
+                            color = Color.Gray
                         )
-                    Spacer(modifier = Modifier.height(5.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Customer orders will appear here",
+                            fontSize = 13.sp,
+                            color = Color.LightGray
+                        )
+                    }
+                }
 
-                    OutlinedTextField(
-                        value = food,
-                        onValueChange = {
-                            food = it
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                        label = { Text("Enter Food") }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(orders) { order ->
+                            AdminOrderCard(order = order, db = db)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminOrderCard(order: OrderModel, db: FirebaseFirestore) {
+
+    val greenColor = Color(0xFF4CAF50)
+    val statusOptions = listOf("Pending", "Preparing", "Out for Delivery", "Delivered", "Cancelled")
+
+    var expanded by remember { mutableStateOf(false) }
+    var currentStatus by remember { mutableStateOf(order.status ?: "Pending") }
+
+    val date = order.timestamp?.let {
+        java.text.SimpleDateFormat(
+            "dd MMM yyyy, hh:mm a",
+            java.util.Locale.getDefault()
+        ).format(java.util.Date(it))
+    } ?: "N/A"
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        onClick = {}
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+
+            // ✅ Date + Order ID
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "📅 $date",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "#${order.orderId?.takeLast(6)?.uppercase() ?: "N/A"}",
+                    fontSize = 11.sp,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // ✅ Customer Details Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text(
+                        text = "👤 Customer Details",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF388E3C)
                     )
-                    Spacer(modifier = Modifier.height(5.dp))
-
-                    OutlinedTextField(
-                        value = price,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        onValueChange = {
-                            price = it
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                        label = { Text("Enter Price") }
-                    )
-
-                    Spacer(modifier = Modifier.height(5.dp))
-
-                    ElevatedButton(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp),
-                        onClick = {
-
-                            if (category.isNotEmpty() && food.isNotEmpty() && price.isNotEmpty()) {
-                                dissmis()  // ✅ dialog band karo
-                            }
-
-                            // Add data in firebase
-
-                            val foodItemobj = FoodItem1(
-                                category = category,
-                                food = food,
-                                price = price.toInt(),
-                            )
-
-                            // store data in firebase firestore
-                            val firebaseobj = FirebaseFirestore.getInstance()
-                            firebaseobj.collection("FoodItem1")
-                                .add(foodItemobj)
-                                .addOnSuccessListener { documentReference ->
-                                    firebaseobj.collection("FoodItem1")
-                                        .document(documentReference.id)
-                                        .update("id",documentReference.id)
-                                        .addOnSuccessListener {
-                                            dissmis()
-                                        }
-                                        .addOnFailureListener { e ->
-                                            Log.e("Firestore","Error : ${e.message}")
-                                        }
-                                }
-                                .addOnFailureListener { exception ->
-                                    Log.e("Firestore","Add failed : ${exception.message}")
-                                }
-                        },
-                        colors = ButtonDefaults.elevatedButtonColors(
-                            containerColor = colorResource(R.color.primaryGreen)
-                        ),
-                        shape = RoundedCornerShape(5.dp)
-                    ) { Text("ADD",color = Color.White)}
-
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Name:  ", fontSize = 12.sp, color = Color.Gray)
+                        Text(
+                            text = order.userName ?: "N/A",
+                            fontSize = 12.sp,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Phone:  ", fontSize = 12.sp, color = Color.Gray)
+                        Text(
+                            text = order.userPhone ?: "N/A",
+                            fontSize = 12.sp,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.Top) {
+                        Text(text = "Address:  ", fontSize = 12.sp, color = Color.Gray)
+                        Text(
+                            text = order.userAddress ?: "N/A",
+                            fontSize = 12.sp,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
 
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = Color(0xFFEEEEEE))
+            Spacer(Modifier.height(10.dp))
+
+            // ✅ Items Ordered
+            Text(
+                text = "Items Ordered:",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            order.items.forEach { item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "• ", color = greenColor, fontSize = 14.sp)
+                        Text(
+                            text = "${item["foodname"] ?: "N/A"}",
+                            fontSize = 13.sp,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "  x${item["quantity"] ?: 1}",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    Text(
+                        text = "₹${item["foodprice"] ?: 0.0}",
+                        fontSize = 13.sp,
+                        color = greenColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = Color(0xFFEEEEEE))
+            Spacer(Modifier.height(8.dp))
+
+            // ✅ Total Amount
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Total Amount:",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Text(
+                    text = "₹${order.totalPrice}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = greenColor
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = Color(0xFFEEEEEE))
+            Spacer(Modifier.height(10.dp))
+
+            // ✅ Status Update Dropdown
+            Text(
+                text = "Update Order Status:",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Spacer(Modifier.height(6.dp))
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { expanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = when (currentStatus) {
+                            "Pending"          -> Color(0xFFFFF9C4)
+                            "Preparing"        -> Color(0xFFE3F2FD)
+                            "Out for Delivery" -> Color(0xFFE8EAF6)
+                            "Delivered"        -> Color(0xFFE8F5E9)
+                            "Cancelled"        -> Color(0xFFFFEBEE)
+                            else               -> Color(0xFFF5F5F5)
+                        }
+                    )
+                ) {
+                    Text(
+                        text = currentStatus,
+                        fontWeight = FontWeight.Bold,
+                        color = when (currentStatus) {
+                            "Pending"          -> Color(0xFFF57F17)
+                            "Preparing"        -> Color(0xFF1565C0)
+                            "Out for Delivery" -> Color(0xFF283593)
+                            "Delivered"        -> Color(0xFF2E7D32)
+                            "Cancelled"        -> Color.Red
+                            else               -> Color.Gray
+                        }
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = Color.Gray
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    statusOptions.forEach { status ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = status,
+                                    fontWeight = FontWeight.Medium,
+                                    color = when (status) {
+                                        "Pending"          -> Color(0xFFF57F17)
+                                        "Preparing"        -> Color(0xFF1565C0)
+                                        "Out for Delivery" -> Color(0xFF283593)
+                                        "Delivered"        -> Color(0xFF2E7D32)
+                                        "Cancelled"        -> Color.Red
+                                        else               -> Color.Gray
+                                    }
+                                )
+                            },
+                            onClick = {
+                                currentStatus = status
+                                expanded = false
+                                // ✅ Firestore mein status update karo
+                                order.orderId?.let { id ->
+                                    db.collection("order")
+                                        .document(id)
+                                        .update("status", status)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
         }
-
-    )
-
+    }
 }
-
-
-
