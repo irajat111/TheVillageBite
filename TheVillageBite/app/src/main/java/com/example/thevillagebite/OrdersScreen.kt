@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext          // ✅ ADD THIS
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,7 +58,6 @@ fun AdminOrdersScreen() {
     var orders by remember { mutableStateOf<List<OrderModel>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // ✅ Admin ke liye SARE orders fetch karo (koi userId filter nahi)
     LaunchedEffect(Unit) {
         db.collection("order")
             .addSnapshotListener { snapshot, _ ->
@@ -76,7 +76,6 @@ fun AdminOrdersScreen() {
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) {
-        // ✅ Header
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -85,7 +84,7 @@ fun AdminOrdersScreen() {
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(6.dp),
             colors = CardDefaults
-                .cardColors(containerColor = colorResource(R.color.cardGreen)),
+                .cardColors(containerColor = colorResource(R.color.white)),
             onClick = { }
         ) {
             Row(
@@ -110,7 +109,6 @@ fun AdminOrdersScreen() {
                         )
                     }
                 }
-
                 Text(text = "🍟", fontSize = 28.sp)
             }
         }
@@ -131,11 +129,7 @@ fun AdminOrdersScreen() {
                     ) {
                         Text(text = "📦", fontSize = 50.sp)
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "No Orders Yet!",
-                            fontSize = 16.sp,
-                            color = Color.Gray
-                        )
+                        Text(text = "No Orders Yet!", fontSize = 16.sp, color = Color.Gray)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "Customer orders will appear here",
@@ -165,6 +159,7 @@ fun AdminOrdersScreen() {
 @Composable
 fun AdminOrderCard(order: OrderModel, db: FirebaseFirestore) {
 
+    val context = LocalContext.current                   // ✅ GET CONTEXT HERE
     val greenColor = Color(0xFF4CAF50)
     val statusOptions = listOf("Pending", "Preparing", "Out for Delivery", "Delivered", "Cancelled")
 
@@ -191,17 +186,12 @@ fun AdminOrderCard(order: OrderModel, db: FirebaseFirestore) {
                 .padding(14.dp)
         ) {
 
-            // ✅ Date + Order ID
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "📅 $date",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                Text(text = "📅 $date", fontSize = 12.sp, color = Color.Gray)
                 Text(
                     text = "#${order.orderId?.takeLast(6)?.uppercase() ?: "N/A"}",
                     fontSize = 11.sp,
@@ -212,7 +202,6 @@ fun AdminOrderCard(order: OrderModel, db: FirebaseFirestore) {
 
             Spacer(Modifier.height(10.dp))
 
-            // ✅ Customer Details Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
@@ -262,14 +251,12 @@ fun AdminOrderCard(order: OrderModel, db: FirebaseFirestore) {
             HorizontalDivider(color = Color(0xFFEEEEEE))
             Spacer(Modifier.height(10.dp))
 
-            // ✅ Items Ordered
             Text(
                 text = "Items Ordered:",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
-
             Spacer(Modifier.height(6.dp))
 
             order.items.forEach { item ->
@@ -282,16 +269,8 @@ fun AdminOrderCard(order: OrderModel, db: FirebaseFirestore) {
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "• ", color = greenColor, fontSize = 14.sp)
-                        Text(
-                            text = "${item["foodname"] ?: "N/A"}",
-                            fontSize = 13.sp,
-                            color = Color.Black
-                        )
-                        Text(
-                            text = "  x${item["quantity"] ?: 1}",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
+                        Text(text = "${item["foodname"] ?: "N/A"}", fontSize = 13.sp, color = Color.Black)
+                        Text(text = "  x${item["quantity"] ?: 1}", fontSize = 12.sp, color = Color.Gray)
                     }
                     Text(
                         text = "₹${item["foodprice"] ?: 0.0}",
@@ -306,31 +285,19 @@ fun AdminOrderCard(order: OrderModel, db: FirebaseFirestore) {
             HorizontalDivider(color = Color(0xFFEEEEEE))
             Spacer(Modifier.height(8.dp))
 
-            // ✅ Total Amount
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Total Amount:",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Text(
-                    text = "₹${order.totalPrice}",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = greenColor
-                )
+                Text(text = "Total Amount:", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(text = "₹${order.totalPrice}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = greenColor)
             }
 
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = Color(0xFFEEEEEE))
             Spacer(Modifier.height(10.dp))
 
-            // ✅ Status Update Dropdown
             Text(
                 text = "Update Order Status:",
                 fontSize = 13.sp,
@@ -399,11 +366,33 @@ fun AdminOrderCard(order: OrderModel, db: FirebaseFirestore) {
                             onClick = {
                                 currentStatus = status
                                 expanded = false
-                                // ✅ Firestore mein status update karo
+
                                 order.orderId?.let { id ->
+                                    // ✅ STEP 1: Firestore mein status update karo
                                     db.collection("order")
                                         .document(id)
                                         .update("status", status)
+
+                                    // ✅ STEP 2: Admin ko local notification do
+                                    AdminNotificationHelper.sendOrderStatusChangedNotification(
+                                        context = context,
+                                        status  = status,
+                                        orderId = id
+                                    )
+
+                                    // ✅ STEP 3: User ke liye Firestore mein notification entry save karo
+                                    //    (sendOrderStatusChangedNotification ke andar ye already hota hai)
+                                    //    Par agar user ka userName chahiye notification mein, yahan se pass karo:
+                                    db.collection("userNotifications").add(
+                                        mapOf(
+                                            "userId"    to (order.userId ?: ""),
+                                            "title"     to "Order Update 🔔",
+                                            "body"      to "Order #${id.takeLast(6).uppercase()} — Status: $status",
+                                            "orderId"   to id,
+                                            "timestamp" to System.currentTimeMillis(),
+                                            "read"      to false
+                                        )
+                                    )
                                 }
                             }
                         )

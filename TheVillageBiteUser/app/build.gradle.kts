@@ -61,6 +61,7 @@ dependencies {
     // ✅ Coil Image Loading
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.2.0")
+    implementation("com.google.firebase:firebase-messaging-ktx")
 
     // ✅ Supabase
     implementation(platform("io.github.jan-tennert.supabase:bom:3.0.0"))
@@ -72,6 +73,11 @@ dependencies {
 
     // ✅ ViewModel Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     // ✅ Test
     testImplementation(libs.junit)

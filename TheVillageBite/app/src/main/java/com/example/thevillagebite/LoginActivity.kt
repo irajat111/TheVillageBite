@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,21 +49,13 @@ fun LoginScreenUI(onLoginSuccess: () -> Unit) {
     val context = LocalContext.current
     val auth    = Firebase.auth
 
-    // ── Field states ───────────────────────────────────────
     var email    by remember { mutableStateOf("admin@gmail.com") }
     var password by remember { mutableStateOf("Admin@123") }
-
-    // ── Eye icon toggle ────────────────────────────────────
     var passwordVisible by remember { mutableStateOf(false) }
+    var emailError      by remember { mutableStateOf("") }
+    var passwordError   by remember { mutableStateOf("") }
+    var isLoading       by remember { mutableStateOf(false) }
 
-    // ── Error states ───────────────────────────────────────
-    var emailError    by remember { mutableStateOf("") }
-    var passwordError by remember { mutableStateOf("") }
-
-    // ── Loading state ──────────────────────────────────────
-    var isLoading by remember { mutableStateOf(false) }
-
-    // ── Design tokens ──────────────────────────────────────
     val greenColor = Color(0xFF4CAF50)
     val cardShape  = RoundedCornerShape(14.dp)
 
@@ -77,7 +68,6 @@ fun LoginScreenUI(onLoginSuccess: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
 
-        // ── Logo ───────────────────────────────────────────
         Image(
             painter            = painterResource(id = R.drawable.logo),
             contentDescription = "App Logo",
@@ -104,28 +94,21 @@ fun LoginScreenUI(onLoginSuccess: () -> Unit) {
 
         Spacer(Modifier.height(32.dp))
 
-        // ── Email Field ────────────────────────────────────
         OutlinedTextField(
             value         = email,
-            onValueChange = {
-                email      = it
-                emailError = ""
-            },
-            label = { Text("Emter Email") },
-            placeholder = { Text("admin@example.com") },
-            leadingIcon = {
-                Icon(Icons.Outlined.Email, contentDescription = "Email Icon")
-            },
+            onValueChange = { email = it; emailError = "" },
+            label         = { Text("Enter Email") },
+            placeholder   = { Text("admin@example.com") },
+            leadingIcon   = { Icon(Icons.Outlined.Email, contentDescription = "Email Icon") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            isError = emailError.isNotEmpty(),
+            isError        = emailError.isNotEmpty(),
             supportingText = {
-                if (emailError.isNotEmpty())
-                    Text(emailError, color = Color.Red, fontSize = 12.sp)
+                if (emailError.isNotEmpty()) Text(emailError, color = Color.Red, fontSize = 12.sp)
             },
-            modifier  = Modifier.fillMaxWidth(),
-            shape     = cardShape,
+            modifier   = Modifier.fillMaxWidth(),
+            shape      = cardShape,
             singleLine = true,
-            colors    = OutlinedTextFieldDefaults.colors(
+            colors     = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor      = greenColor,
                 unfocusedBorderColor    = Color(0xFFDDDDDD),
                 focusedContainerColor   = Color.White,
@@ -135,34 +118,24 @@ fun LoginScreenUI(onLoginSuccess: () -> Unit) {
 
         Spacer(Modifier.height(10.dp))
 
-        // ── Password Field ─────────────────────────────────
         OutlinedTextField(
             value         = password,
-            onValueChange = {
-                password      = it
-                passwordError = ""
-            },
-            label = { Text("Password") },
-            leadingIcon = {
-                Icon(Icons.Outlined.Lock, contentDescription = "Password Icon")
-            },
-            trailingIcon = {
+            onValueChange = { password = it; passwordError = "" },
+            label         = { Text("Password") },
+            leadingIcon   = { Icon(Icons.Outlined.Lock, contentDescription = "Password Icon") },
+            trailingIcon  = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
-                        imageVector = if (passwordVisible)
-                            Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                        contentDescription = if (passwordVisible)
-                            "Hide Password" else "Show Password"
+                        imageVector        = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                        contentDescription = if (passwordVisible) "Hide" else "Show"
                     )
                 }
             },
-            visualTransformation = if (passwordVisible)
-                VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            isError = passwordError.isNotEmpty(),
+            isError        = passwordError.isNotEmpty(),
             supportingText = {
-                if (passwordError.isNotEmpty())
-                    Text(passwordError, color = Color.Red, fontSize = 12.sp)
+                if (passwordError.isNotEmpty()) Text(passwordError, color = Color.Red, fontSize = 12.sp)
             },
             modifier   = Modifier.fillMaxWidth(),
             shape      = cardShape,
@@ -177,34 +150,26 @@ fun LoginScreenUI(onLoginSuccess: () -> Unit) {
 
         Spacer(Modifier.height(24.dp))
 
-        // ── Login Button ───────────────────────────────────
         ElevatedButton(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = RoundedCornerShape(10.dp),
+            shape   = RoundedCornerShape(10.dp),
             enabled = !isLoading,
             onClick = {
                 var isValid = true
 
-                // ── Validations ────────────────────────────
                 if (email.trim().isEmpty()) {
-                    emailError = "Email cannot be empty"
-                    isValid    = false
+                    emailError = "Email cannot be empty"; isValid = false
                 } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) {
-                    emailError = "Enter a valid email address"
-                    isValid    = false
+                    emailError = "Enter a valid email address"; isValid = false
                 }
-
                 if (password.isEmpty()) {
-                    passwordError = "Password cannot be empty"
-                    isValid       = false
+                    passwordError = "Password cannot be empty"; isValid = false
                 } else if (password.length < 6) {
-                    passwordError = "Password must be at least 6 characters"
-                    isValid       = false
+                    passwordError = "Password must be at least 6 characters"; isValid = false
                 }
 
-                // ── Firebase Login ─────────────────────────
                 if (isValid) {
                     isLoading = true
                     auth.signInWithEmailAndPassword(email.trim(), password)
@@ -213,9 +178,13 @@ fun LoginScreenUI(onLoginSuccess: () -> Unit) {
                             if (it.isSuccessful) {
                                 Log.i("AdminLogin", "Login success: ${email.trim()}")
                                 Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
+
+                                // ✅ LOGIN NOTIFICATION + TOKEN SAVE
+                                AdminNotificationHelper.sendAdminLoginNotification(context)
+                                AdminNotificationHelper.refreshAndSaveAdminFCMToken()
+
                                 onLoginSuccess()
                             } else {
-                                // Show specific Firebase error
                                 val errorMsg = when {
                                     it.exception?.message?.contains("password") == true ->
                                         "Incorrect password. Please try again."
@@ -235,14 +204,14 @@ fun LoginScreenUI(onLoginSuccess: () -> Unit) {
                 }
             },
             colors = ButtonDefaults.elevatedButtonColors(
-                containerColor = greenColor,
+                containerColor         = greenColor,
                 disabledContainerColor = Color(0xFFA5D6A7)
             )
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
-                    color  = Color.White,
-                    modifier = Modifier.size(22.dp),
+                    color       = Color.White,
+                    modifier    = Modifier.size(22.dp),
                     strokeWidth = 2.dp
                 )
             } else {

@@ -138,7 +138,14 @@ fun CartScreen() {
                         Log.e("WALLET", "Wallet save failed: ${e.message}")
                     }
 
-                Toast.makeText(context, "Order Placed Successfully! 🎉", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Order Placed Successfully!", Toast.LENGTH_SHORT).show()
+
+                // ✅ PAYMENT SUCCESS NOTIFICATION — yahan call karo
+                NotificationHelper.sendPaymentSuccessNotification(
+                    context = context,
+                    amount  = currentTotal,
+                    orderId = docRef.id
+                )
 
                 cartItems.forEach { cartItem ->
                     db.collection("cart").document(cartItem.documentId ?: "").delete()
@@ -150,12 +157,8 @@ fun CartScreen() {
     }
 
     fun startRazorpayPayment() {
-        //val activity = context as? Activity
         val checkout = Checkout()
         checkout.setKeyID("rzp_test_SdiScR9yQT87HR")
-            //Checkout.preload(context)
-
-
 
         try {
             val options = JSONObject().apply {
@@ -178,7 +181,6 @@ fun CartScreen() {
         }
     }
 
-    // ✅ rememberUpdatedState — hamesha latest cartItems/quantities capture karega
     val currentSaveOrder by rememberUpdatedState { paymentId: String ->
         saveOrderToFirestore(paymentId)
     }
@@ -251,7 +253,7 @@ fun CartScreen() {
                                 Text("Total Price:", fontWeight = FontWeight.Bold,
                                     color = colorResource(R.color.primaryGreen))
                                 Spacer(Modifier.weight(1f))
-                                Text("₹${"%.2f".format(totalPrice)}", fontWeight = FontWeight.Bold)
+                                Text("Rs.${"%.2f".format(totalPrice)}", fontWeight = FontWeight.Bold)
                             }
 
                             ElevatedButton(
@@ -261,7 +263,7 @@ fun CartScreen() {
                                 colors   = ButtonDefaults.buttonColors(
                                     containerColor = colorResource(R.color.cardGreen))
                             ) {
-                                Text("Buy 🛒", color = Color.Black)
+                                Text("Buy", color = Color.Black)
                             }
                         }
                     }
@@ -283,7 +285,7 @@ fun CartScreen() {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("📦 Delivery Details", fontSize = 16.sp,
+                            Text("Delivery Details", fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colorResource(R.color.primaryGreen))
                             IconButton(onClick = { showAddressDialog = false }) {
@@ -345,7 +347,7 @@ fun CartScreen() {
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Total Amount:", fontWeight = FontWeight.Bold)
-                                Text("₹${"%.2f".format(totalPrice)}", fontWeight = FontWeight.Bold,
+                                Text("Rs.${"%.2f".format(totalPrice)}", fontWeight = FontWeight.Bold,
                                     color = colorResource(R.color.primaryGreen))
                             }
                         }
@@ -376,7 +378,7 @@ fun CartScreen() {
                         ) {
                             Icon(Icons.Default.Payment, contentDescription = null, tint = Color.Black)
                             Spacer(Modifier.width(8.dp))
-                            Text("Proceed to Pay 💳", color = Color.Black, fontWeight = FontWeight.Bold)
+                            Text("Proceed to Pay", color = Color.Black, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -428,7 +430,7 @@ fun CartItemCard(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "₹${cartItem.foodprice}", fontSize = 14.sp, color = Color(0xFF388E3C))
+                        Text(text = "Rs.${cartItem.foodprice}", fontSize = 14.sp, color = Color(0xFF388E3C))
                         Spacer(Modifier.weight(1f))
                         Icon(
                             Icons.Default.Delete, contentDescription = "",
@@ -479,7 +481,7 @@ fun CartItemCard(
                             Icon(Icons.Default.Warning, contentDescription = "",
                                 tint = Color.Red, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Remove Item? 🗑️", fontSize = 15.sp,
+                            Text("Remove Item?", fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold, color = Color.Red)
                         }
                         IconButton(onClick = { showDeleteDialog = false }) {
@@ -500,7 +502,7 @@ fun CartItemCard(
                         ) {
                             Box(Modifier.fillMaxWidth().height(50.dp),
                                 contentAlignment = Alignment.Center) {
-                                Text("Cancel ✖️", fontSize = 13.sp)
+                                Text("Cancel", fontSize = 13.sp)
                             }
                         }
                         Card(
@@ -516,7 +518,7 @@ fun CartItemCard(
                         ) {
                             Box(Modifier.fillMaxWidth().height(50.dp),
                                 contentAlignment = Alignment.Center) {
-                                Text("Remove 🗑️", fontSize = 13.sp, color = Color.Red)
+                                Text("Remove", fontSize = 13.sp, color = Color.Red)
                             }
                         }
                     }

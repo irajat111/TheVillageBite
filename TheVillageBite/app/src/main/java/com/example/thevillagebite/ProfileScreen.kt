@@ -34,10 +34,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.google.firebase.Firebase
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.storage.Storage
@@ -45,16 +47,15 @@ import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
-fun ProfileScreen(
-    onLogout:       () -> Unit = {},
-    onWalletClick:  () -> Unit = {}          // ✅ Wallet navigate callback
-) {
+fun ProfileScreen(navController: NavController) {
     val context     = LocalContext.current
     val auth        = Firebase.auth
     val currentUser = auth.currentUser
     val adminEmail  = currentUser?.email ?: "Not Logged In"
+    val uid         = currentUser?.uid
 
     val supabase = createSupabaseClient(
         supabaseUrl = SupabaseObject.supaBaseUrl,
@@ -63,55 +64,74 @@ fun ProfileScreen(
 
     val db = Firebase.firestore
 
-    var isUploading by remember { mutableStateOf(false) }
-    var imageUri    by remember { mutableStateOf<Uri?>(null) }
-    var imageUrl    by remember { mutableStateOf("") }
+    var isUploading  by remember { mutableStateOf(false) }
+    var imageUrl     by remember { mutableStateOf("") }
+    var totalRevenue by remember { mutableStateOf(0.0) }
+    var paymentCount by remember { mutableStateOf(0) }
 
-    // ── Wallet stats ──────────────────────────────────────
-    var totalRevenue   by remember { mutableStateOf(0.0) }
-    var paymentCount   by remember { mutableStateOf(0) }
-
-    // ✅ Wallet summary fetch karo
     LaunchedEffect(Unit) {
+        if (uid == null) return@LaunchedEffect
+
         db.collection("wallet").get().addOnSuccessListener { snapshot ->
             paymentCount = snapshot.size()
             totalRevenue = snapshot.documents.sumOf { it.getDouble("amount") ?: 0.0 }
         }
-        db.collection("Admin").document(auth.currentUser?.uid.toString()).get()
-            .addOnCompleteListener {
-                if (it.isSuccessful) {
-                    imageUrl = it.result.get("adminProfileImage").toString()
-                }
+
+        db.collection("Admin").document(uid).get()
+            .addOnSuccessListener { doc ->
+                val url = doc.getString("adminProfileImage") ?: ""
+                if (url.isNotEmpty()) imageUrl = url
             }
     }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        if (uri != null) {
-            imageUri = uri
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val fileName    = "${System.currentTimeMillis()}.jpg"
-                    val inputStream = context.contentResolver.openInputStream(uri)
-                    val bytes       = inputStream?.readBytes()
-                    val bucket      = supabase.storage.from("village_bite")
-                    bucket.upload(path = fileName, data = bytes!!)
-                    val uploadedUrl = bucket.publicUrl(fileName)
-                    val hashMap = mapOf(
-                        "name"               to "Admin",
-                        "email"              to adminEmail,
-                        "adminProfileImage"  to uploadedUrl
-                    )
-                    db.collection("Admin").document(auth.currentUser?.uid.toString()).set(hashMap)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful)
-                                Toast.makeText(context, "Image Uploaded Successfully", Toast.LENGTH_SHORT).show()
-                            else
-                                Toast.makeText(context, task.exception?.message, Toast.LENGTH_SHORT).show()
+        if (uri == null) return@rememberLauncherForActivityResult
+        if (uid == null) {
+            Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        isUploading = true
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val fileName    = "${System.currentTimeMillis()}.jpg"
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bytes       = inputStream?.readBytes() ?: return@launch
+                val bucket      = supabase.storage.from("village_bite")
+                bucket.upload(path = fileName, data = bytes)
+                val uploadedUrl = bucket.publicUrl(fileName)
+
+                withContext(Dispatchers.Main) {
+                    db.collection("Admin").document(uid)
+                        .update("adminProfileImage", uploadedUrl)
+                        .addOnSuccessListener {
+                            imageUrl    = uploadedUrl
+                            isUploading = false
+                            Toast.makeText(context, "Image Uploaded Successfully", Toast.LENGTH_SHORT).show()
+                            AdminNotificationHelper.sendAdminProfileUpdateNotification(context)
                         }
-                } catch (e: Exception) {
-                    println("Image upload error: ${e.message}")
+                        .addOnFailureListener {
+                            // Document exist nahi karta — set with merge
+                            db.collection("Admin").document(uid)
+                                .set(mapOf("adminProfileImage" to uploadedUrl), SetOptions.merge())
+                                .addOnSuccessListener {
+                                    imageUrl    = uploadedUrl
+                                    isUploading = false
+                                    Toast.makeText(context, "Image Uploaded Successfully", Toast.LENGTH_SHORT).show()
+                                    AdminNotificationHelper.sendAdminProfileUpdateNotification(context)
+                                }
+                                .addOnFailureListener { e ->
+                                    isUploading = false
+                                    Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                        }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isUploading = false
+                    Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -130,11 +150,7 @@ fun ProfileScreen(
     val greenColor = Color(0xFF4CAF50)
     val cardShape  = RoundedCornerShape(14.dp)
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(colorResource(R.color.white))
-    ) {
+    Box(Modifier.fillMaxSize().background(colorResource(R.color.white))) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -149,7 +165,6 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                // ── Avatar ────────────────────────────────────
                 Box(
                     modifier = Modifier
                         .size(90.dp)
@@ -159,7 +174,7 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
-                        model              = imageUri ?: imageUrl,
+                        model              = imageUrl,
                         contentDescription = "Avatar",
                         contentScale       = ContentScale.Crop,
                         modifier           = Modifier.fillMaxSize().clip(CircleShape)
@@ -171,26 +186,25 @@ fun ProfileScreen(
                                 .background(Color.Black.copy(alpha = 0.4f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(30.dp))
+                            CircularProgressIndicator(
+                                color    = Color.White,
+                                modifier = Modifier.size(30.dp)
+                            )
                         }
                     }
                 }
 
                 Text(
-                    text     = "📷 Change Photo",
+                    text     = "Change Photo",
                     fontSize = 12.sp,
                     color    = greenColor,
                     modifier = Modifier.clickable { imagePicker.launch("image/*") }
                 )
 
                 Spacer(Modifier.height(8.dp))
-
-                Text("Admin Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1B5E20))
-
+                Text("Admin Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
                 Spacer(Modifier.height(12.dp))
 
-                // ── Email Card ────────────────────────────────
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(4.dp),
@@ -206,18 +220,15 @@ fun ProfileScreen(
 
                 Spacer(Modifier.height(16.dp))
 
-                // ✅ ── Wallet Summary Card ─────────────────────
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = RoundedCornerShape(14.dp),
                     colors    = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
                     elevation = CardDefaults.cardElevation(4.dp),
-                    onClick   = { onWalletClick() }
+                    onClick   = { navController.navigate("wallet") }
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier              = Modifier.fillMaxWidth().padding(16.dp),
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -228,23 +239,30 @@ fun ProfileScreen(
                                     .background(greenColor.copy(alpha = 0.15f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.AccountBalanceWallet, contentDescription = null,
-                                    tint = greenColor, modifier = Modifier.size(26.dp))
+                                Icon(
+                                    Icons.Default.AccountBalanceWallet,
+                                    contentDescription = null,
+                                    tint     = greenColor,
+                                    modifier = Modifier.size(26.dp)
+                                )
                             }
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text("Revenue & Payments", fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold, color = Color.Black)
+                                Text(
+                                    "Revenue & Payments",
+                                    fontSize   = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = Color.Black
+                                )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text     = "₹${"%.2f".format(totalRevenue)} • $paymentCount payments",
+                                    text     = "Rs.${"%.2f".format(totalRevenue)} - $paymentCount payments",
                                     fontSize = 12.sp,
                                     color    = greenColor
                                 )
                             }
                         }
-                        Icon(Icons.Default.ChevronRight, contentDescription = null,
-                            tint = greenColor)
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = greenColor)
                     }
                 }
 
@@ -252,7 +270,6 @@ fun ProfileScreen(
                 HorizontalDivider()
                 Spacer(Modifier.height(20.dp))
 
-                // ── Change Password Card ──────────────────────
                 Card(
                     modifier  = Modifier.fillMaxWidth(),
                     shape     = cardShape,
@@ -265,7 +282,6 @@ fun ProfileScreen(
                         Text("Change Password", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(12.dp))
 
-                        // Current Password
                         OutlinedTextField(
                             value         = currentPassword,
                             onValueChange = { currentPassword = it; currentPassError = "" },
@@ -273,28 +289,32 @@ fun ProfileScreen(
                             leadingIcon   = { Icon(Icons.Outlined.Lock, contentDescription = null) },
                             trailingIcon  = {
                                 IconButton(onClick = { currentPassVisible = !currentPassVisible }) {
-                                    Icon(if (currentPassVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                        contentDescription = null)
+                                    Icon(
+                                        if (currentPassVisible) Icons.Filled.Visibility
+                                        else Icons.Filled.VisibilityOff, null
+                                    )
                                 }
                             },
                             visualTransformation = if (currentPassVisible) VisualTransformation.None
                             else PasswordVisualTransformation(),
                             isError        = currentPassError.isNotEmpty(),
-                            supportingText = { if (currentPassError.isNotEmpty()) Text(currentPassError, color = Color.Red, fontSize = 12.sp) },
-                            modifier       = Modifier.fillMaxWidth(),
-                            shape          = cardShape,
-                            singleLine     = true,
-                            colors         = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor     = greenColor,
-                                unfocusedBorderColor   = Color(0xFFDDDDDD),
-                                focusedContainerColor  = Color.White,
+                            supportingText = {
+                                if (currentPassError.isNotEmpty())
+                                    Text(currentPassError, color = Color.Red, fontSize = 12.sp)
+                            },
+                            modifier   = Modifier.fillMaxWidth(),
+                            shape      = cardShape,
+                            singleLine = true,
+                            colors     = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor      = greenColor,
+                                unfocusedBorderColor    = Color(0xFFDDDDDD),
+                                focusedContainerColor   = Color.White,
                                 unfocusedContainerColor = Color.White
                             )
                         )
 
                         Spacer(Modifier.height(10.dp))
 
-                        // New Password
                         OutlinedTextField(
                             value         = newPassword,
                             onValueChange = { newPassword = it; newPassError = "" },
@@ -302,28 +322,32 @@ fun ProfileScreen(
                             leadingIcon   = { Icon(Icons.Outlined.Lock, contentDescription = null) },
                             trailingIcon  = {
                                 IconButton(onClick = { newPassVisible = !newPassVisible }) {
-                                    Icon(if (newPassVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                        contentDescription = null)
+                                    Icon(
+                                        if (newPassVisible) Icons.Filled.Visibility
+                                        else Icons.Filled.VisibilityOff, null
+                                    )
                                 }
                             },
                             visualTransformation = if (newPassVisible) VisualTransformation.None
                             else PasswordVisualTransformation(),
                             isError        = newPassError.isNotEmpty(),
-                            supportingText = { if (newPassError.isNotEmpty()) Text(newPassError, color = Color.Red, fontSize = 12.sp) },
-                            modifier       = Modifier.fillMaxWidth(),
-                            shape          = cardShape,
-                            singleLine     = true,
-                            colors         = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor     = greenColor,
-                                unfocusedBorderColor   = Color(0xFFDDDDDD),
-                                focusedContainerColor  = Color.White,
+                            supportingText = {
+                                if (newPassError.isNotEmpty())
+                                    Text(newPassError, color = Color.Red, fontSize = 12.sp)
+                            },
+                            modifier   = Modifier.fillMaxWidth(),
+                            shape      = cardShape,
+                            singleLine = true,
+                            colors     = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor      = greenColor,
+                                unfocusedBorderColor    = Color(0xFFDDDDDD),
+                                focusedContainerColor   = Color.White,
                                 unfocusedContainerColor = Color.White
                             )
                         )
 
                         Spacer(Modifier.height(10.dp))
 
-                        // Confirm Password
                         OutlinedTextField(
                             value         = confirmPassword,
                             onValueChange = { confirmPassword = it; confirmPassError = "" },
@@ -331,21 +355,26 @@ fun ProfileScreen(
                             leadingIcon   = { Icon(Icons.Outlined.Lock, contentDescription = null) },
                             trailingIcon  = {
                                 IconButton(onClick = { confirmPassVisible = !confirmPassVisible }) {
-                                    Icon(if (confirmPassVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                        contentDescription = null)
+                                    Icon(
+                                        if (confirmPassVisible) Icons.Filled.Visibility
+                                        else Icons.Filled.VisibilityOff, null
+                                    )
                                 }
                             },
                             visualTransformation = if (confirmPassVisible) VisualTransformation.None
                             else PasswordVisualTransformation(),
                             isError        = confirmPassError.isNotEmpty(),
-                            supportingText = { if (confirmPassError.isNotEmpty()) Text(confirmPassError, color = Color.Red, fontSize = 12.sp) },
-                            modifier       = Modifier.fillMaxWidth(),
-                            shape          = cardShape,
-                            singleLine     = true,
-                            colors         = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor     = greenColor,
-                                unfocusedBorderColor   = Color(0xFFDDDDDD),
-                                focusedContainerColor  = Color.White,
+                            supportingText = {
+                                if (confirmPassError.isNotEmpty())
+                                    Text(confirmPassError, color = Color.Red, fontSize = 12.sp)
+                            },
+                            modifier   = Modifier.fillMaxWidth(),
+                            shape      = cardShape,
+                            singleLine = true,
+                            colors     = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor      = greenColor,
+                                unfocusedBorderColor    = Color(0xFFDDDDDD),
+                                focusedContainerColor   = Color.White,
                                 unfocusedContainerColor = Color.White
                             )
                         )
@@ -355,27 +384,46 @@ fun ProfileScreen(
                         ElevatedButton(
                             onClick = {
                                 var isValid = true
-                                if (currentPassword.isEmpty()) { currentPassError = "Enter your current password"; isValid = false }
-                                if (newPassword.isEmpty()) { newPassError = "Enter new password"; isValid = false }
-                                else if (newPassword.length < 6) { newPassError = "Password must be at least 6 characters"; isValid = false }
-                                else if (!newPassword.any { it.isUpperCase() }) { newPassError = "Must contain at least one uppercase letter"; isValid = false }
-                                else if (!newPassword.any { it.isDigit() }) { newPassError = "Must contain at least one number"; isValid = false }
-                                else if (newPassword == currentPassword) { newPassError = "New password cannot be same as current"; isValid = false }
-                                if (confirmPassword.isEmpty()) { confirmPassError = "Please confirm your new password"; isValid = false }
-                                else if (confirmPassword != newPassword) { confirmPassError = "Passwords do not match"; isValid = false }
+                                if (currentPassword.isEmpty()) {
+                                    currentPassError = "Enter your current password"; isValid = false
+                                }
+                                if (newPassword.isEmpty()) {
+                                    newPassError = "Enter new password"; isValid = false
+                                } else if (newPassword.length < 6) {
+                                    newPassError = "Password must be at least 6 characters"; isValid = false
+                                } else if (!newPassword.any { it.isUpperCase() }) {
+                                    newPassError = "Must contain at least one uppercase letter"; isValid = false
+                                } else if (!newPassword.any { it.isDigit() }) {
+                                    newPassError = "Must contain at least one number"; isValid = false
+                                } else if (newPassword == currentPassword) {
+                                    newPassError = "New password cannot be same as current"; isValid = false
+                                }
+                                if (confirmPassword.isEmpty()) {
+                                    confirmPassError = "Please confirm your new password"; isValid = false
+                                } else if (confirmPassword != newPassword) {
+                                    confirmPassError = "Passwords do not match"; isValid = false
+                                }
 
                                 if (isValid && currentUser != null) {
                                     val credential = EmailAuthProvider.getCredential(adminEmail, currentPassword)
                                     currentUser.reauthenticate(credential).addOnCompleteListener { reAuth ->
                                         if (reAuth.isSuccessful) {
-                                            currentUser.updatePassword(newPassword).addOnCompleteListener { update ->
-                                                if (update.isSuccessful) {
-                                                    Toast.makeText(context, "Password Changed Successfully!", Toast.LENGTH_SHORT).show()
-                                                    currentPassword = ""; newPassword = ""; confirmPassword = ""
-                                                } else {
-                                                    Toast.makeText(context, update.exception?.message ?: "Update Failed", Toast.LENGTH_SHORT).show()
+                                            currentUser.updatePassword(newPassword)
+                                                .addOnCompleteListener { update ->
+                                                    if (update.isSuccessful) {
+                                                        Toast.makeText(context, "Password Changed Successfully!", Toast.LENGTH_SHORT).show()
+                                                        AdminNotificationHelper.sendLocalNotification(
+                                                            context = context,
+                                                            title   = "Password Changed",
+                                                            body    = "Admin password changed successfully."
+                                                        )
+                                                        currentPassword = ""
+                                                        newPassword     = ""
+                                                        confirmPassword = ""
+                                                    } else {
+                                                        Toast.makeText(context, update.exception?.message ?: "Update Failed", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 }
-                                            }
                                         } else {
                                             currentPassError = "Current password is incorrect"
                                         }
@@ -388,17 +436,21 @@ fun ProfileScreen(
                                 containerColor = colorResource(R.color.cardGreen)
                             )
                         ) {
-                            Text("Change Password", color = Color.Black,
-                                fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Change Password",
+                                color      = Color.Black,
+                                fontSize   = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
 
                 Spacer(Modifier.height(20.dp))
 
-                // ── Logout Button ─────────────────────────────
                 OutlinedButton(
                     onClick = {
+                        AdminNotificationHelper.stopListening()
                         auth.signOut()
                         Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
                         context.startActivity(Intent(context, LoginActivity::class.java))

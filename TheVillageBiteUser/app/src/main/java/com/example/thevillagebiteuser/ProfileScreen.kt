@@ -39,64 +39,114 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.firestore
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun ProfileScreen(navController: NavHostController) {
 
-    val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()
+    val context     = LocalContext.current
+    val auth        = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
-    val db = Firebase.firestore
+    val db          = Firebase.firestore
+    val uid         = currentUser?.uid
 
-    // for supabase
+    // ── Supabase client — Admin app jaisa same ────────────────────────────────
     val supabase = createSupabaseClient(
         supabaseUrl = SupabaseObject.supaBaseUrl,
         supabaseKey = SupabaseObject.supaBasekey
     ) { install(Storage) }
 
-//    var isUploading by remember { mutableStateOf(false) }
-    var imageUri    by remember { mutableStateOf<Uri?>(null) }
-    var imageUrl    by remember { mutableStateOf("") }
-
-
     var totalOrders by remember { mutableStateOf(0) }
-
-    LaunchedEffect(Unit) {
-        currentUser?.uid?.let { uid ->
-            db.collection("order")
-                .whereEqualTo("userId", uid)
-                .addSnapshotListener { snapshot, _ ->
-                    if (snapshot != null) {
-                        totalOrders = snapshot.documents.size
-                    }
-                }
-        }
-    }
-
-    var avatarUrl by remember { mutableStateOf(currentUser?.photoUrl?.toString() ?: "") }
+    var imageUrl    by remember { mutableStateOf("") }
     var isUploading by remember { mutableStateOf(false) }
 
+    // ── 1. Firestore se data load karo ────────────────────────────────────────
+    LaunchedEffect(Unit) {
+        if (uid == null) return@LaunchedEffect
+
+        // Total orders
+        db.collection("order")
+            .whereEqualTo("userId", uid)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) totalOrders = snapshot.documents.size
+            }
+
+        // Saved profile image
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { doc ->
+                val savedUrl = doc.getString("avatarUrl") ?: ""
+                imageUrl = if (savedUrl.isNotEmpty()) savedUrl
+                else currentUser?.photoUrl?.toString() ?: ""
+            }
+    }
+
+    // ── 2. Image picker — Supabase village_bite bucket (Admin jaisa) ──────────
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        if (uri != null) {
-            avatarUrl = uri.toString()
+        if (uri == null) return@rememberLauncherForActivityResult
+        if (uid == null) {
+            Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        isUploading = true
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val fileName    = "user_${uid}_${System.currentTimeMillis()}.jpg"
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bytes       = inputStream?.readBytes() ?: return@launch
+                inputStream.close()
+
+                // Admin app jaisa — same bucket "village_bite"
+                val bucket     = supabase.storage.from("village_bite")
+                bucket.upload(path = fileName, data = bytes)
+                val uploadedUrl = bucket.publicUrl(fileName)
+
+                withContext(Dispatchers.Main) {
+                    // Firestore mein save karo
+                    val userDoc = db.collection("users").document(uid)
+                    userDoc.get().addOnSuccessListener { doc ->
+                        if (doc.exists()) {
+                            userDoc.update("avatarUrl", uploadedUrl)
+                        } else {
+                            userDoc.set(mapOf("avatarUrl" to uploadedUrl))
+                        }
+                    }
+
+                    imageUrl    = uploadedUrl
+                    isUploading = false
+                    Toast.makeText(context, "Photo update ho gayi!", Toast.LENGTH_SHORT).show()
+                    NotificationHelper.sendProfileUpdateNotification(context)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isUploading = false
+                    Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 
-    val userEmail = currentUser?.email ?: "No Email Found"
-    var currentPassword by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-
+    // ── 3. Password fields ────────────────────────────────────────────────────
+    val userEmail        = currentUser?.email ?: "No Email Found"
+    var currentPassword  by remember { mutableStateOf("") }
+    var newPassword      by remember { mutableStateOf("") }
+    var confirmPassword  by remember { mutableStateOf("") }
     var currentPassError by remember { mutableStateOf("") }
-    var newPassError by remember { mutableStateOf("") }
+    var newPassError     by remember { mutableStateOf("") }
     var confirmPassError by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    var passwordVisible  by remember { mutableStateOf(false) }
 
     val greenColor = Color(0xFF4CAF50)
-    val cardShape = RoundedCornerShape(14.dp)
+    val cardShape  = RoundedCornerShape(14.dp)
 
+    // ── 4. UI ─────────────────────────────────────────────────────────────────
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -107,30 +157,27 @@ fun ProfileScreen(navController: NavHostController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        // Avatar
         Box(
             modifier = Modifier
                 .size(90.dp)
                 .clip(CircleShape)
                 .background(greenColor, CircleShape)
-                .clickable {
-                    imagePicker.launch("image/*")
-                },
+                .clickable { if (!isUploading) imagePicker.launch("image/*") },
             contentAlignment = Alignment.Center
         ) {
-            if (avatarUrl.isNotEmpty()) {
+            if (imageUrl.isNotEmpty()) {
                 AsyncImage(
-                    model = avatarUrl,
+                    model              = imageUrl,
                     contentDescription = "Avatar",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
+                    contentScale       = ContentScale.Crop,
+                    modifier           = Modifier.fillMaxSize().clip(CircleShape)
                 )
             } else {
                 Text(
-                    text = userEmail.first().uppercaseChar().toString(),
-                    fontSize = 36.sp,
-                    color = Color.White,
+                    text       = userEmail.first().uppercaseChar().toString(),
+                    fontSize   = 36.sp,
+                    color      = Color.White,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -143,7 +190,7 @@ fun ProfileScreen(navController: NavHostController) {
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        color = Color.White,
+                        color    = Color.White,
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -151,29 +198,23 @@ fun ProfileScreen(navController: NavHostController) {
         }
 
         Text(
-            text = "📷 Change Photo",
+            text     = if (isUploading) "Uploading..." else "Change Photo",
             fontSize = 12.sp,
-            color = greenColor,
-            modifier = Modifier.clickable {
-                imagePicker.launch("image/*")
-            }
+            color    = greenColor,
+            modifier = Modifier.clickable { if (!isUploading) imagePicker.launch("image/*") }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Email card
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier  = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
-            onClick = { },
+            colors    = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
+            onClick   = {},
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "Email",
-                    fontSize = 13.sp,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Email", fontSize = 13.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 Text(userEmail, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
@@ -181,34 +222,24 @@ fun ProfileScreen(navController: NavHostController) {
 
         Spacer(Modifier.height(12.dp))
 
-        // ✅ Total Orders Card - click pe orderDetails screen
+        // Total orders card
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier  = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
-            onClick = {
-                navController.navigate("orderDetails") // ✅ Navigate
-            },
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+            colors    = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+            onClick   = { navController.navigate("orderDetails") },
+        ) {            Row(
+                modifier          = Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "Total Orders",
-                        fontSize = 13.sp,
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Total Orders", fontSize = 13.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "$totalOrders Orders Placed",
-                        fontSize = 16.sp,
+                        text       = "$totalOrders Orders Placed",
+                        fontSize   = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = greenColor
+                        color      = greenColor
                     )
                 }
                 Text(text = "🍟", fontSize = 30.sp)
@@ -219,58 +250,44 @@ fun ProfileScreen(navController: NavHostController) {
         HorizontalDivider()
         Spacer(Modifier.height(20.dp))
 
+        // Change password card
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = cardShape,
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier  = Modifier.fillMaxWidth(),
+            shape     = cardShape,
+            colors    = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(2.dp),
-            onClick = { },
+            onClick   = {},
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
 
-                Text(
-                    text = "Change Password",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-
+                Text("Change Password", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
-                    value = currentPassword,
-                    onValueChange = {
-                        currentPassword = it
-                        currentPassError = ""
-                    },
-                    label = { Text("Current Password") },
-                    trailingIcon = {
+                    value         = currentPassword,
+                    onValueChange = { currentPassword = it; currentPassError = "" },
+                    label         = { Text("Current Password") },
+                    trailingIcon  = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible)
-                                    Icons.Filled.Visibility
-                                else
-                                    Icons.Filled.VisibilityOff,
+                                imageVector        = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                 contentDescription = ""
                             )
                         }
                     },
-                    visualTransformation = if (passwordVisible)
-                        VisualTransformation.None
-                    else
-                        PasswordVisualTransformation(),
-                    isError = currentPassError.isNotEmpty(),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    isError        = currentPassError.isNotEmpty(),
                     supportingText = {
                         if (currentPassError.isNotEmpty())
                             Text(currentPassError, color = Color.Red, fontSize = 12.sp)
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = cardShape,
+                    modifier   = Modifier.fillMaxWidth(),
+                    shape      = cardShape,
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = greenColor,
-                        unfocusedBorderColor = Color(0xFFDDDDDD),
-                        focusedContainerColor = Color.White,
+                    colors     = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor      = greenColor,
+                        unfocusedBorderColor    = Color(0xFFDDDDDD),
+                        focusedContainerColor   = Color.White,
                         unfocusedContainerColor = Color.White
                     )
                 )
@@ -278,39 +295,30 @@ fun ProfileScreen(navController: NavHostController) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 OutlinedTextField(
-                    value = newPassword,
-                    onValueChange = {
-                        newPassword = it
-                        newPassError = ""
-                    },
-                    label = { Text("New Password") },
-                    trailingIcon = {
+                    value         = newPassword,
+                    onValueChange = { newPassword = it; newPassError = "" },
+                    label         = { Text("New Password") },
+                    trailingIcon  = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible)
-                                    Icons.Filled.Visibility
-                                else
-                                    Icons.Filled.VisibilityOff,
+                                imageVector        = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                 contentDescription = ""
                             )
                         }
                     },
-                    visualTransformation = if (passwordVisible)
-                        VisualTransformation.None
-                    else
-                        PasswordVisualTransformation(),
-                    isError = newPassError.isNotEmpty(),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    isError        = newPassError.isNotEmpty(),
                     supportingText = {
                         if (newPassError.isNotEmpty())
                             Text(newPassError, color = Color.Red, fontSize = 12.sp)
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = cardShape,
+                    modifier   = Modifier.fillMaxWidth(),
+                    shape      = cardShape,
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = greenColor,
-                        unfocusedBorderColor = Color(0xFFDDDDDD),
-                        focusedContainerColor = Color.White,
+                    colors     = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor      = greenColor,
+                        unfocusedBorderColor    = Color(0xFFDDDDDD),
+                        focusedContainerColor   = Color.White,
                         unfocusedContainerColor = Color.White
                     )
                 )
@@ -318,39 +326,30 @@ fun ProfileScreen(navController: NavHostController) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = {
-                        confirmPassword = it
-                        confirmPassError = ""
-                    },
-                    label = { Text("Confirm New Password") },
-                    trailingIcon = {
+                    value         = confirmPassword,
+                    onValueChange = { confirmPassword = it; confirmPassError = "" },
+                    label         = { Text("Confirm New Password") },
+                    trailingIcon  = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible)
-                                    Icons.Filled.Visibility
-                                else
-                                    Icons.Filled.VisibilityOff,
+                                imageVector        = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                 contentDescription = ""
                             )
                         }
                     },
-                    visualTransformation = if (passwordVisible)
-                        VisualTransformation.None
-                    else
-                        PasswordVisualTransformation(),
-                    isError = confirmPassError.isNotEmpty(),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    isError        = confirmPassError.isNotEmpty(),
                     supportingText = {
                         if (confirmPassError.isNotEmpty())
                             Text(confirmPassError, color = Color.Red, fontSize = 12.sp)
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = cardShape,
+                    modifier   = Modifier.fillMaxWidth(),
+                    shape      = cardShape,
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = greenColor,
-                        unfocusedBorderColor = Color(0xFFDDDDDD),
-                        focusedContainerColor = Color.White,
+                    colors     = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor      = greenColor,
+                        unfocusedBorderColor    = Color(0xFFDDDDDD),
+                        focusedContainerColor   = Color.White,
                         unfocusedContainerColor = Color.White
                     )
                 )
@@ -360,53 +359,32 @@ fun ProfileScreen(navController: NavHostController) {
                 ElevatedButton(
                     onClick = {
                         var isValid = true
-
-                        if (currentPassword.isEmpty()) {
-                            currentPassError = "Enter your current password"
-                            isValid = false
-                        }
-                        if (newPassword.isEmpty()) {
-                            newPassError = "Enter new password"
-                            isValid = false
-                        } else if (newPassword.length < 6) {
-                            newPassError = "Password must be at least 6 characters"
-                            isValid = false
-                        } else if (newPassword == currentPassword) {
-                            newPassError = "New password cannot be same as current"
-                            isValid = false
-                        }
-                        if (confirmPassword.isEmpty()) {
-                            confirmPassError = "Please confirm your new password"
-                            isValid = false
-                        } else if (confirmPassword != newPassword) {
-                            confirmPassError = "Passwords do not match"
-                            isValid = false
-                        }
+                        if (currentPassword.isEmpty()) { currentPassError = "Enter your current password"; isValid = false }
+                        if (newPassword.isEmpty()) { newPassError = "Enter new password"; isValid = false }
+                        else if (newPassword.length < 6) { newPassError = "Password must be at least 6 characters"; isValid = false }
+                        else if (newPassword == currentPassword) { newPassError = "New password cannot be same as current"; isValid = false }
+                        if (confirmPassword.isEmpty()) { confirmPassError = "Please confirm your new password"; isValid = false }
+                        else if (confirmPassword != newPassword) { confirmPassError = "Passwords do not match"; isValid = false }
 
                         if (isValid && currentUser != null) {
-                            val credential = EmailAuthProvider.getCredential(
-                                userEmail, currentPassword
-                            )
+                            val credential = EmailAuthProvider.getCredential(userEmail, currentPassword)
                             currentUser.reauthenticate(credential)
                                 .addOnCompleteListener { reAuthTask ->
                                     if (reAuthTask.isSuccessful) {
                                         currentUser.updatePassword(newPassword)
                                             .addOnCompleteListener { updateTask ->
                                                 if (updateTask.isSuccessful) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "Password Changed Successfully!",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
+                                                    Toast.makeText(context, "Password Changed Successfully!", Toast.LENGTH_SHORT).show()
+                                                    NotificationHelper.sendLocalNotification(
+                                                        context = context,
+                                                        title   = "Password Changed",
+                                                        body    = "Aapka password successfully change ho gaya."
+                                                    )
                                                     currentPassword = ""
-                                                    newPassword = ""
+                                                    newPassword     = ""
                                                     confirmPassword = ""
                                                 } else {
-                                                    Toast.makeText(
-                                                        context,
-                                                        updateTask.exception?.message ?: "Failed",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
+                                                    Toast.makeText(context, updateTask.exception?.message ?: "Failed", Toast.LENGTH_SHORT).show()
                                                 }
                                             }
                                     } else {
@@ -415,11 +393,9 @@ fun ProfileScreen(navController: NavHostController) {
                                 }
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(7.dp),
-                    colors = ButtonDefaults.elevatedButtonColors(
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape    = RoundedCornerShape(7.dp),
+                    colors   = ButtonDefaults.elevatedButtonColors(
                         containerColor = colorResource(R.color.cardGreen)
                     )
                 ) {
@@ -436,20 +412,14 @@ fun ProfileScreen(navController: NavHostController) {
                 context.startActivity(Intent(context, LogInActivity::class.java))
                 (context as Activity).finish()
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color.White,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape    = RoundedCornerShape(8.dp),
+            colors   = ButtonDefaults.outlinedButtonColors(
+                contentColor   = Color.White,
                 containerColor = colorResource(R.color.primaryGreen)
             )
         ) {
-            Icon(
-                imageVector = Icons.Outlined.ExitToApp,
-                contentDescription = "Logout",
-                tint = Color.White
-            )
+            Icon(imageVector = Icons.Outlined.ExitToApp, contentDescription = "Logout", tint = Color.White)
             Spacer(modifier = Modifier.width(8.dp))
             Text("Logout", color = Color.White, fontSize = 16.sp)
         }

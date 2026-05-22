@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:allowBackup="true"
@@ -13,13 +14,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TheVillageBiteUser">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.TheVillageBiteUser">
 
-        </activity>
+        <!-- FCM Service — ek baar, andar -->
+        <service
+            android:name=".FCMNotification"
+            android:exported="false"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+            </intent-filter>
+        </service>
 
         <activity
             android:name=".SplashActivity"
@@ -28,37 +32,33 @@
             android:theme="@style/Theme.TheVillageBiteUser">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
         <activity
-            android:name=".DashBoardActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.TheVillageBiteUser">
-        </activity>
-
-
-        <activity
-            android:name=".SignUpActivity"
-            android:exported="false"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.TheVillageBiteUser">
-
-        </activity>
-
+            android:theme="@style/Theme.TheVillageBiteUser"/>
 
         <activity
             android:name=".LogInActivity"
             android:exported="false"
             android:label="@string/app_name"
-            android:theme="@style/Theme.TheVillageBiteUser">
+            android:theme="@style/Theme.TheVillageBiteUser"/>
 
-        </activity>
+        <activity
+            android:name=".SignUpActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TheVillageBiteUser"/>
 
-
+        <activity
+            android:name=".DashBoardActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TheVillageBiteUser"/>
 
     </application>
 
