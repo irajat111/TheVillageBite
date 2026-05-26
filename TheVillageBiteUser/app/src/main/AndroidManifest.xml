@@ -60,6 +60,8 @@
             android:label="@string/app_name"
             android:theme="@style/Theme.TheVillageBiteUser"/>
 
+
+
     </application>
 
 </manifest>

@@ -27,12 +27,6 @@ fun SplashScreenUI(onFinish: () -> Unit = {}) {
     LaunchedEffect(Unit) {
         delay(3000)
         onFinish()
-//        if(auth.currentUser?.uid!=null){
-//            context.startActivity(Intent(context, MainActivity::class.java))
-//            onFinish()
-//        }else{
-//           context.startActivity(Intent(context, MainActivity::class.java))
-//        }
     }
 
     Box(

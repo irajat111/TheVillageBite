@@ -50,6 +50,7 @@ class DashBoardActivity : ComponentActivity(), PaymentResultWithDataListener {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         getNotification()
+
         setContent { DashBoardScreen() }
     }
 
